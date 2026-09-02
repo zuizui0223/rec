@@ -4,11 +4,17 @@ Status: **design contract; freeze before confirmatory use**.
 
 ## 1. Purpose
 
-The REC shadow set cannot be reconstructed from an event log alone because non-entered exposures have no event-log row. REC therefore requires a **master exposure ledger** whose rows are created independently of the tested gate or archive policy.
-
-The ledger is the empirical denominator for the record-entry process.
+The REC shadow set cannot be reconstructed from an event log alone because non-entered exposures have no event-log row. REC therefore requires a **master exposure ledger** whose rows are created independently of the tested gate, acquisition failure, or archive policy.
 
 > **No exposure ledger, no confirmatory claim about the non-entered world.**
+
+The ledger separates three pre-TNOA questions:
+
+- `A`: was the primary acquisition available?
+- `R`: was the registered-deviation gate evaluable?
+- `K`: did an operational scientific record enter the archive/event log?
+
+Do not collapse acquisition failure, gate rejection, and archive loss into one generic nondetection.
 
 ## 2. One row = one exposure opportunity
 
@@ -30,15 +36,18 @@ Required fields:
 - `exposure_source_version`
 - `exposure_expected`
 - `primary_stream_expected`
+- `primary_stream_available`
+- `acquisition_status`
+- `gate_evaluable`
 - `record_entry_present`
 - `record_entry_policy_version`
 - `record_entry_id`
 - `record_entry_timestamp`
 - `record_entry_reason`
 
-`window_id` is the join key used by the Chapter-2 audit table.
+`window_id` is the join key used by the Chapter-2 truth/gate audit table.
 
-## 3. Exposure source
+## 3. Exposure source and denominator
 
 `exposure_source` explains why the row exists independently of the tested record-entry mechanism. Examples:
 
@@ -50,9 +59,40 @@ Required fields:
 
 The tested event gate itself cannot be the exposure source.
 
-`exposure_source_version` freezes the rule used to generate the grid.
+`exposure_source_version` freezes the rule used to generate `Omega`.
 
-## 4. Record-entry indicator K
+A missing event-log row is not allowed to define the denominator.
+
+## 4. Primary acquisition A
+
+`primary_stream_available=True` means the primary evidence needed by the tested observation pipeline exists and is usable enough to attempt the frozen gate logic.
+
+`acquisition_status` must be one of:
+
+- `available`
+- `planned_not_acquired`
+- `hardware_failure`
+- `corrupt_or_missing`
+- `unknown_unavailable`
+
+Rules:
+
+- `primary_stream_available=True` requires `acquisition_status=available`;
+- `planned_not_acquired` requires `primary_stream_expected=False` and `primary_stream_available=False`;
+- failure/unavailable statuses require `primary_stream_available=False`;
+- if the primary stream was expected but unavailable, this is an **acquisition shadow**, not a gate miss.
+
+## 5. Gate evaluability R
+
+`gate_evaluable=True` means the frozen registered-deviation rule can be evaluated from the retained primary inputs.
+
+- `gate_evaluable=True` requires `primary_stream_available=True`;
+- if primary acquisition is unavailable, the gate result is undefined rather than negative;
+- if acquisition exists but required gate inputs are incomplete, use `gate_evaluable=False` and preserve the reason in the Chapter-2 gate table.
+
+The actual registered-deviation result belongs to the Chapter-2 window table. The exposure ledger only establishes whether that result could legitimately exist.
+
+## 6. Record-entry indicator K
 
 `record_entry_present` is the empirical `K` indicator.
 
@@ -61,99 +101,147 @@ The tested event gate itself cannot be the exposure source.
 
 If `record_entry_present=True`, both `record_entry_id` and `record_entry_timestamp` are required.
 
-If `record_entry_present=False`, `record_entry_id` and `record_entry_timestamp` must be empty. Do not fabricate a placeholder event row.
+If `record_entry_present=False`, those fields must be empty. Do not fabricate placeholder event rows.
 
-`record_entry_reason` records only what is independently known about the entry mechanism. Recommended controlled values:
+`record_entry_reason` controlled values:
 
 - `entered`
 - `gate_rejected`
+- `gate_not_evaluable`
 - `archive_policy_excluded`
 - `storage_failure`
 - `primary_stream_failure`
 - `unknown`
 - `not_applicable`
 
-Do not infer `gate_rejected` simply because no record exists unless gate provenance establishes that fact.
+Guardrails:
 
-## 5. Distinguish R from K
+- `gate_rejected` requires available primary acquisition and an evaluable gate;
+- `gate_not_evaluable` requires available primary acquisition and a non-evaluable gate;
+- `primary_stream_failure` requires unavailable primary acquisition;
+- `record_entry_reason=entered` iff `record_entry_present=True`.
 
-REC keeps the registration gate `R` and operational record entry `K` separate.
+Do not infer `gate_rejected` merely because no record exists.
+
+## 7. REC shadow classes
+
+The ledger permits reproducible operational shadow classes.
+
+### Entered world
+
+`K=1`.
+
+### Planned non-acquisition shadow
+
+`A=0` because the frozen design did not schedule primary acquisition for that exposure.
+
+### Acquisition-failure shadow
+
+`A=0` despite primary acquisition being expected.
+
+### Gate shadow
+
+`A=1`, gate evaluable, `K=0`, with independently established `record_entry_reason=gate_rejected`.
+
+### Gate-unevaluable shadow
+
+`A=1`, gate not evaluable, `K=0`.
+
+### Archive shadow
+
+Primary acquisition exists and entry is lost after gate/registration because of archive policy or storage failure.
+
+### Unknown shadow
+
+`K=0` but the responsible pre-entry stage cannot be established.
+
+These are measurement-process states, not biological states.
+
+## 8. Relationship between R and K
+
+REC keeps the registered-deviation gate and operational record entry separate.
 
 Examples:
 
-- `R=0, K=1`: a fixed-schedule system stores a baseline window;
-- `R=0, K=0`: an event-driven system stores nothing after gate rejection;
-- `R=1, K=1`: registered deviation enters the log;
-- `R=1, K=0`: possible downstream archive/storage failure and therefore a distinct failure mode.
+- gate says no deviation, `K=1`: fixed-schedule system stores a baseline window;
+- gate says no deviation, `K=0`: event-driven system stores nothing after gate rejection;
+- gate says deviation, `K=1`: registered deviation enters the log;
+- gate says deviation, `K=0`: downstream archive/storage loss;
+- acquisition unavailable: gate is not evaluable at all.
 
-The master ledger records `K`; the Chapter-2 window table records `R` where the gate can be reconstructed/audited.
+Never code the last case as `registered_deviation=False`.
 
-## 6. Joining to Chapter-2 truth audit
-
-The Chapter-2 truth/audit table may contain all exposures or a probability sample.
+## 9. Joining to Chapter-2 truth audit
 
 Every Chapter-2 `window_id` must exist in the master exposure ledger.
 
-When truth annotation is sampled, inclusion probabilities belong to the Chapter-2 truth-sampling design, not to the exposure ledger itself.
+The Chapter-2 table may contain all exposures or a probability sample. When truth annotation is sampled, inclusion probabilities belong to the Chapter-2 truth-sampling design.
+
+The ledger should cross-check acquisition/gate-evaluability fields when they are also present in the Chapter-2 table.
 
 Population quantities such as
 
 `q_shadow = P(E=1 | K=0)`
 
-must be estimated using the frozen truth-sampling design over the master ledger.
+must use the frozen truth-sampling design over the master ledger.
 
-## 7. Required invariants
+Chapter-2 gate absorption such as
+
+`P(R=0 | E=1)`
+
+must be conditioned on gate-evaluable primary acquisition. Acquisition failures are a separate REC layer.
+
+## 10. Required invariants
 
 A valid ledger must satisfy:
 
-1. `window_id` unique within the ledger;
-2. every row has positive exposure duration;
+1. `window_id` unique;
+2. positive exposure duration;
 3. `exposure_expected=True` for ledger members;
-4. exposure source/version is present;
-5. record-entry policy version is present;
-6. entered rows have unique record-entry IDs and timestamps;
-7. non-entered rows have no fabricated record-entry ID/timestamp;
-8. `record_entry_reason=entered` iff `record_entry_present=True`;
-9. a record cannot exist when `primary_stream_expected=False` unless a separately documented architecture permits it;
-10. development/held-out assignment, if added later, must occur by independent grouping rather than individual event rows.
+4. exposure source/version present;
+5. acquisition state internally consistent;
+6. gate cannot be evaluable without primary acquisition;
+7. record-entry policy version present;
+8. entered rows have unique record-entry IDs and timestamps;
+9. non-entered rows have no fabricated record-entry ID/timestamp;
+10. record-entry reason is compatible with acquisition and gate-evaluability state;
+11. development/held-out assignment, if added later, occurs by independent grouping rather than event rows.
 
-## 8. What the ledger does not establish
+## 11. What the ledger does not establish
 
 The ledger alone does not establish:
 
 - biological event truth;
-- why a gate failed;
-- sensor observability;
 - biological absence;
+- why a gate rejected an event unless gate provenance is separately available;
+- observability truth;
 - whether a non-entered exposure contained an event.
 
-Those require Chapter-2 independent truth/audit fields.
+Those require independent reference truth/audit data.
 
-## 9. Continuous versus event-triggered systems
+## 12. Continuous versus event-triggered systems
 
 ### Continuous system
 
-A continuous audio/video stream can define `Omega` directly by a frozen time grid. Operational event detections become `K` or `R` overlays on that denominator.
+A continuous audio/video/reference stream can define `Omega` by a frozen time grid. Acquisition, gate and event-entry states are overlays on that denominator.
 
 ### Event-triggered-only system
 
 An event log cannot define `Omega` because exposures with no trigger are absent from the log. A separate fixed clock, independent reference stream, time-lapse channel or other exposure-accounting mechanism is required.
 
-This is why a public event-triggered image archive may be sufficient for post-entry TNOA analyses but insufficient for REC shadow-world identification.
+This is why event-triggered image archives may support post-entry TNOA analyses but not full REC shadow-world identification.
 
-## 10. Executable validation
-
-Validate a ledger with:
+## 13. Executable validation
 
 ```bash
 python scripts/validate_exposure_ledger.py exposures.csv
 ```
 
-Optionally cross-check a Chapter-2 audit table:
+Optional Chapter-2 join check:
 
 ```bash
 python scripts/validate_exposure_ledger.py exposures.csv \
   --window-table chapter2_windows.csv
 ```
 
-The validator is structural and fail-closed. It does not infer missing exposures or repair the record-entry process.
+The validator is structural and fail-closed. It does not infer missing exposures, biological truth, or missing gate results.
