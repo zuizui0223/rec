@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Estimate REC gate/entry shadow quantities from a validated exposure ledger and truth sample."""
+"""Estimate REC acquisition/gate/entry shadow quantities from validated tables."""
 from __future__ import annotations
 
 import argparse
@@ -24,6 +24,12 @@ def _bool(value: str, field: str) -> bool:
     raise AnalysisError(f"{field} must be boolean, got {value!r}")
 
 
+def _optional_bool(value: str, field: str) -> bool | None:
+    if not str(value).strip():
+        return None
+    return _bool(value, field)
+
+
 def _weight(row: dict[str, str]) -> float:
     if not _bool(row["truth_sampled"], "truth_sampled"):
         return 0.0
@@ -45,7 +51,12 @@ def load_ledger(path: Path) -> dict[str, dict[str, str]]:
         reader = csv.DictReader(fh)
         if reader.fieldnames is None:
             raise AnalysisError("exposure ledger has no header")
-        needed = {"window_id", "record_entry_present"}
+        needed = {
+            "window_id",
+            "primary_stream_available",
+            "gate_evaluable",
+            "record_entry_present",
+        }
         missing = needed - set(reader.fieldnames)
         if missing:
             raise AnalysisError(f"exposure ledger missing: {', '.join(sorted(missing))}")
@@ -65,6 +76,8 @@ def load_truth(path: Path) -> list[dict[str, str]]:
             raise AnalysisError("truth table has no header")
         needed = {
             "window_id",
+            "primary_stream_available",
+            "gate_evaluable",
             "registered_deviation",
             "target_truth",
             "truth_sampled",
@@ -90,6 +103,18 @@ def analyze(ledger_path: Path, truth_path: Path) -> dict[str, Any]:
             raise AnalysisError(f"truth window {wid!r} absent from exposure ledger")
         joined_rows += 1
 
+        ledger_row = ledger[wid]
+        primary_available = _bool(
+            ledger_row["primary_stream_available"], "ledger.primary_stream_available"
+        )
+        gate_evaluable = _bool(ledger_row["gate_evaluable"], "ledger.gate_evaluable")
+        k = _bool(ledger_row["record_entry_present"], "ledger.record_entry_present")
+
+        if _bool(row["primary_stream_available"], "truth.primary_stream_available") != primary_available:
+            raise AnalysisError(f"window {wid!r}: primary_stream_available disagrees across tables")
+        if _bool(row["gate_evaluable"], "truth.gate_evaluable") != gate_evaluable:
+            raise AnalysisError(f"window {wid!r}: gate_evaluable disagrees across tables")
+
         if not _bool(row["truth_sampled"], "truth_sampled"):
             continue
         truth = row["target_truth"].strip().lower()
@@ -98,35 +123,65 @@ def analyze(ledger_path: Path, truth_path: Path) -> dict[str, Any]:
 
         sampled_rows += 1
         w = _weight(row)
-        r = _bool(row["registered_deviation"], "registered_deviation")
-        k = _bool(ledger[wid]["record_entry_present"], "record_entry_present")
         positive = truth == "positive"
 
         totals["resolved"] += w
         if positive:
             totals["positive"] += w
-        if not r:
-            totals["R0_resolved"] += w
+
+        if not primary_available:
+            totals["A0_resolved"] += w
             if positive:
-                totals["R0_positive"] += w
+                totals["A0_positive"] += w
+
+        if not gate_evaluable:
+            totals["gate_unevaluable_resolved"] += w
+            if positive:
+                totals["gate_unevaluable_positive"] += w
+        else:
+            totals["gate_evaluable_resolved"] += w
+            if positive:
+                totals["gate_evaluable_positive"] += w
+            r = _optional_bool(row["registered_deviation"], "registered_deviation")
+            if r is None:
+                raise AnalysisError(
+                    f"window {wid!r}: gate-evaluable truth row lacks registered_deviation"
+                )
+            if not r:
+                totals["R0_resolved"] += w
+                if positive:
+                    totals["R0_positive"] += w
+
         if not k:
             totals["K0_resolved"] += w
             if positive:
                 totals["K0_positive"] += w
 
     return {
-        "schema": "rec-shadow-selection-analysis-v1",
+        "schema": "rec-shadow-selection-analysis-v2",
         "ledger_path": str(ledger_path),
         "truth_path": str(truth_path),
         "joined_truth_rows": joined_rows,
         "weighted_resolved_truth_sample_rows": sampled_rows,
         "weighted_totals": dict(totals),
         "estimands": {
-            "q_B_event_given_registered_baseline": _ratio(
+            "q_acquisition_shadow_event_given_primary_unavailable": _ratio(
+                totals["A0_positive"], totals["A0_resolved"]
+            ),
+            "a_A_primary_unavailable_given_event": _ratio(
+                totals["A0_positive"], totals["positive"]
+            ),
+            "q_gate_unevaluable_event_given_gate_unevaluable": _ratio(
+                totals["gate_unevaluable_positive"], totals["gate_unevaluable_resolved"]
+            ),
+            "a_gate_unevaluable_given_event": _ratio(
+                totals["gate_unevaluable_positive"], totals["positive"]
+            ),
+            "q_B_event_given_registered_baseline_gate_evaluable": _ratio(
                 totals["R0_positive"], totals["R0_resolved"]
             ),
-            "a_R_registered_baseline_given_event": _ratio(
-                totals["R0_positive"], totals["positive"]
+            "a_R_registered_baseline_given_event_gate_evaluable": _ratio(
+                totals["R0_positive"], totals["gate_evaluable_positive"]
             ),
             "q_shadow_event_given_no_record_entry": _ratio(
                 totals["K0_positive"], totals["K0_resolved"]
@@ -136,8 +191,9 @@ def analyze(ledger_path: Path, truth_path: Path) -> dict[str, Any]:
             ),
         },
         "interpretation_boundary": (
-            "These are design-weighted descriptive estimands over reference-resolved sampled exposures. "
-            "Confirmatory uncertainty must respect independent ecological units and the frozen sampling design."
+            "Design-weighted descriptive estimands are separated by acquisition, gate-evaluability and entry layer. "
+            "Confirmatory uncertainty must respect independent ecological units, the master exposure universe, "
+            "and the frozen truth-sampling design."
         ),
     }
 
