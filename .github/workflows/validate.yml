@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run Chapter 2 schema tests
+      - name: Run REC schema tests
         run: python -m unittest discover -s tests -v
       - name: Validate Chapter 2 example window table
         run: |
@@ -21,3 +21,10 @@ jobs:
             examples/chapter2_windows.csv \
             --summary /tmp/chapter2_summary.json
           cat /tmp/chapter2_summary.json
+      - name: Validate REC master exposure ledger
+        run: |
+          python scripts/validate_exposure_ledger.py \
+            examples/exposure_ledger.csv \
+            --window-table examples/chapter2_windows.csv \
+            --summary /tmp/exposure_ledger_summary.json
+          cat /tmp/exposure_ledger_summary.json
