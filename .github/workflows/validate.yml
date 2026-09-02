@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run REC schema tests
+      - name: Run REC schema and analysis tests
         run: python -m unittest discover -s tests -v
       - name: Validate Chapter 2 example window table
         run: |
@@ -28,3 +28,10 @@ jobs:
             --window-table examples/chapter2_windows.csv \
             --summary /tmp/exposure_ledger_summary.json
           cat /tmp/exposure_ledger_summary.json
+      - name: Analyze REC example shadow selection
+        run: |
+          python scripts/analyze_shadow_selection.py \
+            examples/exposure_ledger.csv \
+            examples/chapter2_windows.csv \
+            --output /tmp/shadow_selection.json
+          cat /tmp/shadow_selection.json
