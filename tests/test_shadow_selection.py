@@ -14,7 +14,7 @@ SPEC.loader.exec_module(mod)
 
 
 class ShadowSelectionTests(unittest.TestCase):
-    def test_example_estimands_are_layer_specific(self):
+    def test_example_resolved_only_estimands_are_layer_specific(self):
         result = mod.analyze(
             ROOT / "examples" / "exposure_ledger.csv",
             ROOT / "examples" / "chapter2_windows.csv",
@@ -25,16 +25,16 @@ class ShadowSelectionTests(unittest.TestCase):
         )
         self.assertAlmostEqual(est["a_A_primary_unavailable_given_event"], 0.25)
         self.assertAlmostEqual(
-            est["q_gate_unevaluable_event_given_gate_unevaluable"], 0.5
+            est["q_gate_unevaluable_event_given_gate_unevaluable"], 0.0
         )
-        self.assertAlmostEqual(est["a_gate_unevaluable_given_event"], 0.25)
+        self.assertAlmostEqual(est["a_gate_unevaluable_given_event"], 0.0)
         self.assertAlmostEqual(
-            est["q_B_event_given_registered_baseline_gate_evaluable"], 1.0
+            est["q_B_event_given_registered_baseline_gate_evaluable"], 2 / 3
         )
         self.assertAlmostEqual(
             est["a_R_registered_baseline_given_event_gate_evaluable"], 2 / 3
         )
-        self.assertAlmostEqual(est["q_shadow_event_given_no_record_entry"], 0.75)
+        self.assertAlmostEqual(est["q_shadow_event_given_no_record_entry"], 0.6)
         self.assertAlmostEqual(est["a_K_no_record_entry_given_event"], 0.75)
 
     def test_truth_window_must_exist_in_ledger(self):
