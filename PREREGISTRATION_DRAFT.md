@@ -1,46 +1,59 @@
-# Paper 2 preregistration draft — observation coarsening and field ecological inference
+# REC Paper 2 preregistration draft — record entry, observation semantics and ecological inference
 
-Status: **design draft; not preregistered, not yet data-frozen**.
+Status: **design draft; not preregistered; not yet data-frozen**.
 
-This file defines what must be frozen before confirmatory field labels are inspected. It is intentionally conservative: pilot data may inform sample-size and logistics decisions but may not be mixed into the confirmatory held-out test.
+This file defines what must be frozen before confirmatory field truth is inspected. Pilot data may inform feasibility, annotation allocation and sample-size rules, but pilot ecological units may not be reused as confirmatory held-out evidence.
 
-## 1. Primary question
+## 1. Program question
 
-For the same real ecological observation windows, does preserving independently calibrated B/T/N/U observation-process states recover a reference-truth ecological estimand better than early target/not-target coarsening?
+Paper 2 asks whether information loss at two distinct stages of automated ecological observation changes real downstream ecological inference against independent truth.
 
-Paper 2 also contains a distinct upstream Chapter-2 question: does the registered-deviation gate absorb real events into B before B/T/N/U is formed? Chapter 1 and Chapter 2 must be analyzed separately before their consequences are combined.
+### REC / Chapter 2 — before semantic observation states
 
-## 2. Primary estimand
+Does the tested gate/entry system systematically exclude real biological events from the usable record?
 
-For ecological unit `g` containing fixed-exposure observation windows `i=1..n_g`, define reference-truth target-event prevalence
+### Chapter 1 — after observation states exist
+
+Does later coarsening of `B/T/N/U` to `target/not-target` discard additional information relevant to ecological estimands?
+
+The two stages must be analyzed separately before any combined interpretation.
+
+## 2. Master exposure universe
+
+Before confirmatory scoring, freeze a master exposure universe
+
+`Ω = {i = 1, ..., N}`
+
+that is defined independently of the tested registered-deviation gate and event-log entry policy.
+
+Freeze:
+
+- exposure source;
+- exposure-source version;
+- window start/end rule;
+- exposure duration rule;
+- time-zone/clock synchronization rule;
+- missing-reference/exposure failure policy.
+
+An event-triggered event log cannot define `Ω` because non-entered exposures are exactly the population REC studies.
+
+If a defensible exposure universe cannot be reconstructed, the system cannot support confirmatory `q_shadow` or event-nonentry claims.
+
+## 3. Shared primary ecological estimand
+
+For ecological unit `g` containing frozen exposure windows, define reference-truth target-event prevalence
 
 `theta_g = (# reference-truth target-positive windows) / (# reference-truth resolved windows)`.
 
-Windows with unresolved reference truth are excluded from both numerator and denominator and their fraction is reported.
+Reference-unresolved windows are excluded from numerator and denominator and their fraction is reported.
 
-The ecological unit must be frozen before confirmatory scoring. Preferred grouping for System A is `site × day` or `focal scene × recording day`; frame-level units are forbidden.
-
-## 3. Observation records under comparison
-
-Both records are constructed from the same primary sensor stream and the same frozen evidence adapters.
-
-### Comparator A — binary
-
-`TARGET / not-TARGET`.
-
-The binary record is a deterministic coarsening of the process-resolved record. Its exact mapping must be frozen before held-out analysis.
-
-### Comparator B — process resolved
-
-`B / T / N / U`.
-
-Finer U reasons may be retained as metadata but are not a primary inferential comparator. Paper-1 D5 prohibits treating category count or reason labels as intrinsically informative.
+The ecological unit must be frozen before confirmatory scoring. Preferred System-A units are `site × day` or `focal scene × recording day`; frame-level units are forbidden.
 
 ## 4. Independent truth protocol
 
 The tested observer cannot access the reference channel.
 
-For every sampled window the truth table contains:
+For every truth-sampled exposure, record separately:
 
 - `target_truth`: positive / negative / unresolved;
 - `nuisance_truth`: zero or more predeclared nuisance families / unresolved;
@@ -48,48 +61,240 @@ For every sampled window the truth table contains:
 - `coupled_response_truth`: positive / negative / unresolved, if applicable;
 - `attribution_truth`: supported / unsupported / unresolved, if applicable.
 
-Annotation is blind to algorithm scores, TNOA decisions and binary comparator output.
+Reference annotators should be blind to:
 
-For Chapter 2, the truth sample must deliberately include registered-B windows. Reference annotators should also be blind to the tested pre-gate score/gate result whenever practical.
+- tested pre-gate scores;
+- gate result;
+- event-log entry state;
+- TNOA decision;
+- binary comparator output.
 
-At least one protected subset is independently double-annotated and adjudicated. Inter-annotator agreement is reported but is not used to silently convert unresolved truth to negative truth.
+At least one protected subset is independently double-annotated and adjudicated. Disagreement is reported and must not be silently converted into negative truth.
 
-## 5. Development / held-out split
+## 5. Development / pilot / held-out separation
 
-Splitting is performed before calibration at an independent grouping level, not by frame.
-
-Preferred grouping hierarchy:
+Split at an independent grouping level before calibration, preferably:
 
 1. recording day;
 2. focal scene / camera placement;
 3. continuous recording block.
 
-No group may contribute windows to both development and held-out sets.
+No group may contribute to both development and held-out sets.
 
-Calibration, threshold selection, nuisance-family definitions, observability criteria, registered-deviation gate rules and any Chapter-2 correction method use development groups only.
+Pilot units are excluded from confirmatory held-out inference.
 
-## 6. Pilot phase and sample-size freeze
+Development/pilot data may define:
 
-The pilot exists only to estimate:
+- gate parameters and calibration criteria;
+- nuisance families;
+- observability criteria;
+- entry-policy configuration under study;
+- truth-sampling design;
+- sample-size/precision rule;
+- Chapter-2 condition strata;
+- one ecological contrast.
 
-- target-event rate;
-- nuisance-family frequencies;
-- unresolved-reference-truth rate;
-- annotation time per window;
-- variance of unit-level prevalence error;
-- expected number of independent ecological units per field day;
-- frequency of reference-positive registered-B windows;
-- event-absorption frequency among reference-positive windows;
-- prevalence of candidate Chapter-2 measurement strata;
-- sampling fraction required to annotate B without reviewing every B window.
+Nothing above may be reselected after confirmatory truth is opened.
 
-After the pilot, freeze a power/simulation-based sample-size rule for the paired unit-level primary comparison and a separate precision/sample-size rule for Chapter-2 baseline contamination/event absorption. Pilot ecological units are excluded from the confirmatory held-out test.
+---
 
-Do not choose final sample size by looking at confirmatory effect direction.
+# Part A — REC / Chapter 2: record-entry censoring
 
-## 7. Chapter-1 primary endpoint
+## 6. Chapter-2 variables
 
-For each held-out ecological unit `g`, derive an estimate `theta_hat_g` from each observation record using the same prespecified downstream analysis class.
+For each held-out exposure `i ∈ Ω`, define:
+
+- `E_i`: independent event truth;
+- `S_i`: retained pre-gate primary evidence;
+- `R_i`: frozen registered-deviation gate result (`1` deviation, `0` logical B);
+- `K_i`: frozen archive/record-entry status (`1` entry present, `0` non-entered shadow exposure);
+- `G`: frozen gate version/configuration;
+- `P_K`: frozen entry-policy version/configuration;
+- `X_i`: frozen ecological/measurement covariates.
+
+Freeze the semantic statements:
+
+`R=0` = **no registered deviation under the frozen gate**, not biological absence.
+
+`K=0` = **no operational record entry for an exposure window**, not biological absence.
+
+## 7. Primary REC estimands
+
+### 7.1 Logical baseline contamination
+
+`q_B = P(E=1 | R=0, reference truth resolved)`.
+
+### 7.2 Event absorption
+
+`a = P(R=0 | E=1, reference truth resolved)`.
+
+### 7.3 Record-entry shadow contamination
+
+Where `K=0` exposures are identifiable from `Ω`:
+
+`q_shadow = P(E=1 | K=0, reference truth resolved)`.
+
+### 7.4 Event non-entry
+
+`a_K = P(K=0 | E=1, reference truth resolved)`.
+
+### 7.5 Ecological-unit burden
+
+For ecological unit `g`:
+
+`A_g = P(R=0 | E=1, g)`
+
+and, where identifiable,
+
+`A^K_g = P(K=0 | E=1, g)`.
+
+All uncertainty must respect the frozen truth-sampling design and independent ecological-unit structure.
+
+## 8. REC hypotheses
+
+### REC-H1 — the shadow side contains real events
+
+Estimate `q_B` and, where identifiable, `q_shadow` on held-out data.
+
+No requirement exists to reject exact zero. A near-zero estimate with informative uncertainty is a valid null result.
+
+### REC-H2 — entry loss is condition dependent
+
+Estimate
+
+`a(x) = P(R=0 | E=1, X=x)`
+
+and/or
+
+`a_K(x) = P(K=0 | E=1, X=x)`
+
+for a small frozen set of independently measurable strata.
+
+**Falsifier:** loss is effectively constant or too small to matter at the ecological-unit level.
+
+### REC-H3 — differential entry changes ecological inference
+
+For one prespecified ecological contrast, compare the reference-truth effect with effects inferred from:
+
+1. gate-thresholded record;
+2. event-log-only record where `K` removes exposures;
+3. any correction/uncertainty-aware record only if frozen before held-out truth.
+
+Success does not require a sign reversal. The primary quantity is distance to the reference-truth effect.
+
+### REC-H4 — gate/entry-policy semantics are configuration dependent
+
+If multiple configurations are tested, apply all frozen configurations to the same held-out exposure/evidence stream.
+
+Report their effects on:
+
+- `q_B`;
+- `q_shadow`;
+- `a` and `a_K`;
+- review/capture burden;
+- downstream ecological error.
+
+Do not select a “best” configuration on held-out truth and describe it as predeclared.
+
+## 9. REC truth-sampling design
+
+A confirmatory REC design must deliberately truth-sample non-positive parts of the pipeline.
+
+The frozen design must include:
+
+- registered deviations (`R=1`);
+- logical B (`R=0`);
+- non-entered shadow exposures (`K=0`) where they exist.
+
+If exhaustive annotation is infeasible, freeze stratified inclusion probabilities and preserve inverse-probability weights.
+
+At minimum stratify/reconstruct by:
+
+- gate state `R`;
+- record-entry state `K`;
+- ecological unit;
+- frozen REC condition strata.
+
+Suspicious-looking B/shadow windows cannot be added preferentially without design weights or explicit exploratory status.
+
+## 10. REC condition map
+
+After pilot feasibility and before confirmatory truth, freeze a small condition set selected for measurability and scientific relevance, not effect size.
+
+Preferred measurement-side candidates:
+
+1. reference-rated observability;
+2. occlusion;
+3. target scale/distance proxy;
+4. illumination/exposure;
+5. masking/background motion;
+6. temporal support/gap;
+7. hardware or storage-policy state where relevant.
+
+At most one or a small number of ecological variables should be tied to the prespecified ecological contrast.
+
+All frozen strata are reported, including null/adverse strata.
+
+## 11. REC ecological-consequence identity
+
+For ecological condition `X=x`, define:
+
+- `π(x)=P(E=1|X=x)`;
+- `s(x)=P(R=1|E=1,X=x)`;
+- `f(x)=P(R=1|E=0,X=x)`.
+
+Then
+
+`P(R=1|X=x) = s(x)π(x) + f(x)[1-π(x)]`.
+
+This identity is used only to frame the measurement problem; it is not claimed as a novel theorem.
+
+The confirmatory ecological question is whether variation in `s(x)`/entry selection materially changes the prespecified effect relative to reference truth.
+
+## 12. REC pilot and sample-size freeze
+
+Pilot-only quantities include:
+
+- completeness of the exposure universe;
+- event rate;
+- logical-B frequency;
+- non-entry frequency;
+- reference-positive B/shadow frequency;
+- unresolved-truth rate;
+- candidate stratum prevalence;
+- annotation seconds by gate/entry state;
+- independent-unit variance of `q_B`, `q_shadow`, `a`, `a_K` and prevalence error.
+
+After pilot, freeze separate rules for:
+
+1. precision/sample size of REC contamination/non-entry estimates;
+2. independent-unit sample size for ecological-consequence contrasts.
+
+Do not choose confirmatory sample size based on observed confirmatory effect direction.
+
+---
+
+# Part B — Chapter 1: decision coarsening after entry
+
+## 13. Observation records under comparison
+
+Both records use the same frozen primary sensor evidence adapters and exposure set.
+
+### Comparator A — binary
+
+`TARGET / not-TARGET`.
+
+### Comparator B — process resolved
+
+`B / T / N / U`.
+
+The binary record is a frozen deterministic coarsening of the process-resolved record.
+
+Finer U reasons may remain metadata but are not a primary comparator because Paper-1 D5 did not establish a semantic-specific information premium.
+
+## 14. Chapter-1 primary endpoint
+
+For each held-out ecological unit `g`, derive `theta_hat_g` under both observation records using the same prespecified downstream analysis class.
 
 Primary loss:
 
@@ -101,235 +306,136 @@ Primary contrast:
 
 Positive `Delta` favours preserving B/T/N/U.
 
-The primary inferential analysis is a paired group-level comparison with uncertainty obtained by resampling **independent ecological units**, not windows/frames. The exact estimator (paired bootstrap, hierarchical model or permutation-compatible paired statistic) must be frozen after the pilot and before confirmatory labels are inspected.
+The inferential unit is the independent ecological unit, not frames/windows. Report effect estimate and interval, not only a p-value.
 
-Report the full effect estimate and interval; do not reduce the result to a binary p-value.
+## 15. Chapter-1 condition map
 
-## 8. Secondary endpoints
+Prespecified secondary strata:
 
-Prespecified secondary endpoints:
+- verified nuisance absent/present;
+- fully observable versus compromised/unobservable primary stream;
+- rare-target versus common-target units if adequately populated.
 
-1. Spearman/Pearson rank agreement between estimated and reference-truth unit prevalence;
-2. number and magnitude of pairwise unit-rank reversals;
-3. absolute error stratified by independently labelled nuisance presence;
-4. absolute error stratified by observability truth;
-5. false biological-absence declarations where reference truth is target-positive;
-6. review/annotation time and calibration sample count for each observation vocabulary.
+All predeclared strata are reported.
 
-Annotation burden is a separate outcome. Do not combine information and cost into a scalar utility without a separately declared utility function.
+---
 
-## 9. One ecological conclusion test
+# Part C — shared ecological conclusion and replication
 
-Before confirmatory labels are unblinded, choose exactly one ecological contrast that is scientifically meaningful in System A and estimable from reference truth, for example:
+## 16. One ecological conclusion test
+
+Before confirmatory labels are opened, freeze exactly one scientifically meaningful System-A contrast, for example:
 
 - habitat A versus habitat B;
 - morning versus afternoon;
 - treatment versus control;
-- high versus low environmental stratum.
+- another biologically justified environmental contrast.
 
-Fit the same downstream model to:
+Fit the same downstream model form to:
 
-1. reference truth;
-2. thresholded/process-resolved observation record;
-3. binary observation record;
-4. a Chapter-2 uncertainty-aware or gate-corrected record only if that method was frozen before held-out truth was opened.
+1. reference truth over the master exposure universe;
+2. gate-thresholded record;
+3. event-log-only record where relevant;
+4. process-resolved B/T/N/U record;
+5. binary record;
+6. one correction/uncertainty-aware REC record only if frozen before held-out truth.
 
-Primary interpretation is **distance to the reference-truth effect estimate**. A sign reversal is reported if it occurs but is not required for success.
+Primary interpretation is distance from each observation-derived effect to the reference-truth effect.
 
-The ecological contrast cannot be selected after viewing which contrast produces the largest threshold/binary/process difference.
+Do not select a different contrast because it produces a larger reversal.
 
-## 10. H2 condition map
+## 17. Error-stage interpretation
 
-Estimate the Chapter-1 primary error contrast separately in predeclared strata:
+Where the design permits, describe total observation distortion as arising from distinct stages:
 
-- no verified nuisance versus nuisance present;
-- fully observable versus compromised/unobservable primary stream;
-- rare-target versus common-target units, if enough independent units exist.
+1. gate censoring (`R`);
+2. archive/entry censoring (`K`);
+3. post-entry semantic coarsening.
 
-This section is a condition map, not a search for the most favourable subgroup. All predeclared strata are reported.
+Do **not** claim exact additive decomposition unless the frozen statistical analysis identifies it.
 
-Chapter-2 measurement strata are frozen separately under Section 15 below.
+## 18. System-B replication
 
-## 11. System-B replication
+A System-B dataset is eligible for REC replication only if it has or permits reconstruction of:
 
-Preferred candidate: Snapshot Serengeti expert gold standard.
+- a defensible exposure denominator independent of the tested gate;
+- protected independent truth for sampled exposure windows;
+- frozen gate/entry semantics;
+- independent grouping for development/held-out analysis.
 
-Before using it confirmatorily, freeze:
+Snapshot Serengeti remains a candidate for Chapter 1 and possibly parts of REC, but an event-only gold-standard subset does not by itself identify non-entered exposure windows. Do not force REC onto a dataset without the required denominator.
 
-- focal target or target set;
-- observation unit (capture event, not individual image unless justified);
-- train/development/test partition at camera/location or another independent grouping level;
-- automated/raw evidence adapter used to construct target support;
-- any nuisance/observability annotation protocol;
-- any registered-deviation gate to be treated as a Chapter-2 object;
-- primary ecological estimand (preferred: camera × temporal-block encounter prevalence);
-- exact binary and process-resolved mappings.
+Before System-B confirmatory use, freeze:
 
-The existing expert gold-standard subset is protected truth. If exploratory model or vocabulary development uses any gold-standard event, that event cannot remain in the confirmatory test set.
+- focal target/target set;
+- exposure unit;
+- ecological grouping unit;
+- development/test partition;
+- evidence adapter;
+- gate/entry definition if REC is tested;
+- nuisance/observability protocol;
+- ecological estimand;
+- binary/process-resolved mappings.
 
-Replication success is not defined as reproducing the System-A effect size. The key report is the direction and magnitude of information loss under the independently frozen System-B design. If System B cannot support an independently defined pre-gate truth/gate analysis, Chapter 2 is not forced onto it.
+Replication success is not defined as reproducing System-A effect size. A failed replication constrains generality.
 
-## 12. Null/adverse outcomes that must remain publishable
+## 19. Null/adverse outcomes that remain publishable
 
-The following do not trigger redesign of the confirmatory analysis:
+Do not redesign confirmatory analysis if:
 
-- binary performs equivalently to B/T/N/U;
-- binary performs better after accounting for finite calibration data;
-- Chapter-2 baseline contamination is effectively zero;
-- threshold-absorbed events exist but are not condition dependent;
-- threshold absorption is condition dependent but does not affect the ecological conclusion;
+- `q_B`/`q_shadow` are near zero;
+- gate/entry loss exists but is not condition dependent;
+- condition dependence exists but ecological consequence is negligible;
+- event-log non-entry adds little beyond gate censoring;
+- binary performs equivalently to or better than B/T/N/U under finite calibration;
 - the ecological conclusion does not change;
-- System B fails to replicate System A;
-- annotation cost offsets part or all of the process-resolved information advantage.
+- annotation cost offsets information benefit;
+- System B lacks an eligible exposure denominator;
+- System B fails to replicate System A.
 
-These outcomes constrain the generality of the observation-contract principle and must be retained.
+## 20. Prohibited post-hoc rescue
 
-## 13. Prohibited post-hoc rescues
+After held-out truth is opened, do not:
 
-After held-out labels are opened, do not:
+- redefine the master exposure grid;
+- redefine the biological event;
+- move groups between development and held-out sets;
+- change the primary gate/entry policy under evaluation;
+- retune thresholds on held-out truth;
+- change truth-sampling strata or weights post hoc;
+- redefine nuisance families to improve a result;
+- change B/T/N/U or binary mapping;
+- merge/split U reasons to improve the primary result;
+- replace the ecological unit or primary estimand;
+- choose a new condition stratum because it maximizes loss;
+- choose a new ecological contrast because it changes sign;
+- tune a correction model on held-out truth and call it confirmatory;
+- silently drop reference-unresolved or hard shadow windows.
 
-- redefine nuisance families to improve TNOA;
-- merge or split U reasons to improve the primary result;
-- change binary mapping;
-- move windows between development and held-out groups;
-- change the primary ecological unit;
-- replace the primary estimand;
-- choose a different ecological contrast because it reverses sign;
-- add a new score threshold selected on held-out truth;
-- change the Chapter-2 event definition or registered-deviation gate;
-- choose new Chapter-2 condition strata because they maximize absorption differences;
-- tune a Chapter-2 correction on held-out truth and call it confirmatory;
-- discard difficult/reference-unresolved cases without reporting their rate.
+## 21. Promotion ladder
 
-## 14. Promotion rule for an above-MEE paper
+Report the highest REC layer supported:
 
-A stronger-journal submission is justified only if the final evidence includes:
+- **Layer 0:** no material record-entry loss detected;
+- **Layer 1:** independently verified events exist in logical B / non-entered shadow windows;
+- **Layer 2:** record-entry loss is condition dependent;
+- **Layer 3:** differential entry alters a frozen ecological estimand/contrast or unit ranking;
+- **Layer 4:** a prespecified correction/redesign reduces that distortion on held-out data;
+- **Layer 5:** an independent system supports a compatible direction/condition map.
 
-- independent field truth in System A;
-- a frozen held-out field comparison;
-- direct truth annotation of registered-B windows;
-- a real ecological estimand and one prespecified ecological conclusion test;
-- explicit finite-calibration/annotation burden;
+Do not promote beyond the data.
+
+## 22. Above-MEE promotion rule
+
+A stronger-journal submission is justified only if the final evidence includes, at minimum:
+
+- independent System-A field truth;
+- independently defined exposure universe;
+- frozen held-out REC comparison;
+- frozen held-out Chapter-1 comparison;
+- one real ecological estimand and prespecified ecological conclusion test;
+- explicit finite calibration/annotation burden;
+- condition map showing where information loss does and does not matter;
 - independent System-B replication or an equivalently strong external validation.
 
-Otherwise the field work should be reported as a separate validation study and should not delay the frozen MEE Paper 1.
-
----
-
-## 15. Chapter 2 confirmatory module — threshold censoring
-
-Full scientific rationale: `CHAPTER2_THRESHOLD_CENSORING.md`.
-
-### 15.1 Registered-baseline semantics
-
-Freeze the statement:
-
-`B = no registered deviation under the frozen primary-stream rule`.
-
-Do not define B as biological no-event or absence.
-
-### 15.2 Chapter-2 variables
-
-For each held-out reference-resolved window:
-
-- `E`: independent event truth, positive/negative;
-- `R`: registered-deviation gate result, 1 deviation / 0 B;
-- `S`: retained pre-gate primary-stream evidence;
-- `gate_version`: frozen scalar/composite rule identifier.
-
-Primary Chapter-2 event:
-
-`threshold_absorbed = 1[E=1 and R=0]`.
-
-### 15.3 Primary Chapter-2 estimands
-
-1. Baseline contamination:
-
-`q_B = P(E=1 | R=0, reference truth resolved)`.
-
-2. Event absorption:
-
-`a = P(R=0 | E=1, reference truth resolved)`.
-
-3. Ecological-unit absorption burden:
-
-`A_g = P(R=0 | E=1, ecological unit g)`.
-
-All are estimated with uncertainty at the independent ecological-unit level.
-
-### 15.4 Chapter-2 sampling design
-
-The confirmatory truth sample must include B windows by design.
-
-If B is too common for exhaustive annotation, freeze a stratified sampling scheme before truth annotation. Preserve for every sampled window:
-
-- sampling stratum;
-- inclusion probability;
-- sampling weight;
-- ecological unit;
-- registered B/deviation state.
-
-Population-level `q_B` estimates must respect the frozen sampling design.
-
-### 15.5 Chapter-2 condition strata
-
-After pilot feasibility and before confirmatory labels are opened, freeze a small set of independently measurable strata. Preferred order of consideration:
-
-1. reference-rated observability;
-2. occlusion;
-3. target image scale/distance proxy;
-4. illumination/exposure;
-5. masking/background motion;
-6. one ecological covariate tied to the prespecified ecological contrast.
-
-Do not retain a candidate merely because pilot data show a large effect; retain it only if independently measurable, biologically/measurement-wise interpretable and sufficiently populated for confirmatory estimation.
-
-### 15.6 Chapter-2 primary contrasts
-
-For each frozen stratum `X`, estimate
-
-`a(X=x) = P(R=0 | E=1, X=x)`.
-
-Report pairwise/structured differences with intervals. The primary interpretation is effect magnitude and condition map, not a search for a significant subgroup.
-
-### 15.7 Gate sensitivity
-
-If more than one gate is evaluated, all gate versions must be frozen before held-out truth is opened and applied to the **same retained pre-gate evidence stream**.
-
-Report for each gate:
-
-- `q_B`;
-- event absorption `a`;
-- registered-deviation burden;
-- downstream ecological error;
-- annotation/review burden if gate choice changes review volume.
-
-Do not select the “best” gate on confirmatory truth and then present it as predeclared.
-
-### 15.8 Chapter-2 ecological consequence
-
-For the single prespecified ecological contrast, estimate the reference-truth effect first. Then compare the distance of:
-
-- the frozen thresholded record;
-- any frozen Chapter-2 uncertainty-aware/corrected record;
-- Chapter-1 binary and process-resolved records;
-
-from the reference effect.
-
-Where identifiable, decompose total observation error conceptually into:
-
-1. upstream gate censoring;
-2. downstream decision coarsening.
-
-Do not claim exact additive decomposition unless the frozen analysis establishes it.
-
-### 15.9 Chapter-2 success ladder
-
-Report the highest layer supported without promoting beyond the data:
-
-- **Layer 0:** no detectable threshold absorption;
-- **Layer 1:** threshold-absorbed events exist;
-- **Layer 2:** absorption is condition dependent;
-- **Layer 3:** differential absorption alters a frozen ecological estimand/contrast or unit ranking relative to reference truth.
-
-Layer 3 is the strongest above-MEE contribution; Layers 1–2 remain valid measurement results.
+Otherwise Paper 1 should remain the MEE submission and Paper 2 should be reported at the evidential tier actually achieved.
