@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Estimate REC acquisition/gate/entry shadow quantities from validated tables."""
+"""Estimate REC acquisition/gate/entry shadow quantities from validated tables.
+
+The analysis is deliberately explicit about reference-unresolved mass. Resolved-only
+point estimates are reported together with worst/best-case bounds that allow every
+sampled unresolved truth label to be either positive or negative. No unresolved
+window is silently converted to no-event.
+"""
 from __future__ import annotations
 
 import argparse
@@ -44,6 +50,65 @@ def _weight(row: dict[str, str]) -> float:
 
 def _ratio(num: float, den: float) -> float | None:
     return num / den if den > 0 else None
+
+
+def _add_truth(totals: dict[str, float], prefix: str, truth: str, weight: float) -> None:
+    totals[f"{prefix}_sampled"] += weight
+    if truth == "unresolved":
+        totals[f"{prefix}_unresolved"] += weight
+        return
+    totals[f"{prefix}_resolved"] += weight
+    if truth == "positive":
+        totals[f"{prefix}_positive"] += weight
+
+
+def _q_summary(totals: dict[str, float], prefix: str) -> dict[str, float | None]:
+    """P(E=1 | H) with unresolved truth bounded as unknown binary event status."""
+    positive = totals[f"{prefix}_positive"]
+    resolved = totals[f"{prefix}_resolved"]
+    unresolved = totals[f"{prefix}_unresolved"]
+    sampled = resolved + unresolved
+    return {
+        "resolved_only_estimate": _ratio(positive, resolved),
+        "lower": _ratio(positive, sampled),
+        "upper": _ratio(positive + unresolved, sampled),
+        "weighted_resolved": resolved,
+        "weighted_unresolved": unresolved,
+        "reference_unresolved_fraction": _ratio(unresolved, sampled),
+    }
+
+
+def _a_summary(
+    totals: dict[str, float], *, event_prefix: str, parent_prefix: str
+) -> dict[str, float | None]:
+    """P(H | E=1,parent) with unresolved truth assigned adversarially.
+
+    The lower bound treats unresolved H rows as negative and unresolved non-H rows
+    as positive. The upper bound does the reverse.
+    """
+    h_pos = totals[f"{event_prefix}_positive"]
+    h_unres = totals[f"{event_prefix}_unresolved"]
+    parent_pos = totals[f"{parent_prefix}_positive"]
+    parent_unres = totals[f"{parent_prefix}_unresolved"]
+
+    if h_pos > parent_pos + 1e-9 or h_unres > parent_unres + 1e-9:
+        raise AnalysisError(
+            f"internal layer accounting error: {event_prefix} is not nested in {parent_prefix}"
+        )
+
+    nonh_pos = parent_pos - h_pos
+    nonh_unres = parent_unres - h_unres
+
+    resolved_only = _ratio(h_pos, parent_pos)
+    lower = _ratio(h_pos, h_pos + nonh_pos + nonh_unres)
+    upper = _ratio(h_pos + h_unres, h_pos + h_unres + nonh_pos)
+    return {
+        "resolved_only_estimate": resolved_only,
+        "lower": lower,
+        "upper": upper,
+        "weighted_parent_resolved_positive": parent_pos,
+        "weighted_parent_unresolved": parent_unres,
+    }
 
 
 def load_ledger(path: Path) -> dict[str, dict[str, str]]:
@@ -93,7 +158,7 @@ def analyze(ledger_path: Path, truth_path: Path) -> dict[str, Any]:
     ledger = load_ledger(ledger_path)
     truth_rows = load_truth(truth_path)
 
-    totals = defaultdict(float)
+    totals: dict[str, float] = defaultdict(float)
     sampled_rows = 0
     joined_rows = 0
 
@@ -117,83 +182,98 @@ def analyze(ledger_path: Path, truth_path: Path) -> dict[str, Any]:
 
         if not _bool(row["truth_sampled"], "truth_sampled"):
             continue
+
         truth = row["target_truth"].strip().lower()
-        if truth not in {"positive", "negative"}:
-            continue
+        if truth not in {"positive", "negative", "unresolved"}:
+            raise AnalysisError(f"window {wid!r}: invalid target_truth {truth!r}")
 
         sampled_rows += 1
         w = _weight(row)
-        positive = truth == "positive"
-
-        totals["resolved"] += w
-        if positive:
-            totals["positive"] += w
+        _add_truth(totals, "all", truth, w)
 
         if not primary_available:
-            totals["A0_resolved"] += w
-            if positive:
-                totals["A0_positive"] += w
-
-        if not gate_evaluable:
-            totals["gate_unevaluable_resolved"] += w
-            if positive:
-                totals["gate_unevaluable_positive"] += w
+            _add_truth(totals, "A0", truth, w)
         else:
-            totals["gate_evaluable_resolved"] += w
-            if positive:
-                totals["gate_evaluable_positive"] += w
-            r = _optional_bool(row["registered_deviation"], "registered_deviation")
-            if r is None:
-                raise AnalysisError(
-                    f"window {wid!r}: gate-evaluable truth row lacks registered_deviation"
-                )
-            if not r:
-                totals["R0_resolved"] += w
-                if positive:
-                    totals["R0_positive"] += w
+            _add_truth(totals, "A1", truth, w)
+
+            # Gate unevaluability is a distinct REC layer only after acquisition
+            # exists. Acquisition failure must not be counted again as a gate miss.
+            if not gate_evaluable:
+                _add_truth(totals, "G0", truth, w)
+            else:
+                _add_truth(totals, "G1", truth, w)
+                r = _optional_bool(row["registered_deviation"], "registered_deviation")
+                if r is None:
+                    raise AnalysisError(
+                        f"window {wid!r}: gate-evaluable truth row lacks registered_deviation"
+                    )
+                if not r:
+                    _add_truth(totals, "R0", truth, w)
+                else:
+                    _add_truth(totals, "R1", truth, w)
 
         if not k:
-            totals["K0_resolved"] += w
-            if positive:
-                totals["K0_positive"] += w
+            _add_truth(totals, "K0", truth, w)
+        else:
+            _add_truth(totals, "K1", truth, w)
+
+    if sampled_rows == 0:
+        raise AnalysisError("truth table contains no probability-sampled rows")
+
+    q_acquisition = _q_summary(totals, "A0")
+    q_gate_unevaluable = _q_summary(totals, "G0")
+    q_baseline = _q_summary(totals, "R0")
+    q_shadow = _q_summary(totals, "K0")
+
+    a_acquisition = _a_summary(totals, event_prefix="A0", parent_prefix="all")
+    a_gate_unevaluable = _a_summary(totals, event_prefix="G0", parent_prefix="A1")
+    a_baseline = _a_summary(totals, event_prefix="R0", parent_prefix="G1")
+    a_no_entry = _a_summary(totals, event_prefix="K0", parent_prefix="all")
+
+    # Preserve legacy resolved-only names for easy comparison with earlier REC
+    # exploratory outputs, but make the conditioning explicit in new keys below.
+    legacy_estimands = {
+        "q_acquisition_shadow_event_given_primary_unavailable": q_acquisition["resolved_only_estimate"],
+        "a_A_primary_unavailable_given_event": a_acquisition["resolved_only_estimate"],
+        "q_gate_unevaluable_event_given_gate_unevaluable": q_gate_unevaluable["resolved_only_estimate"],
+        "a_gate_unevaluable_given_event": a_gate_unevaluable["resolved_only_estimate"],
+        "q_B_event_given_registered_baseline_gate_evaluable": q_baseline["resolved_only_estimate"],
+        "a_R_registered_baseline_given_event_gate_evaluable": a_baseline["resolved_only_estimate"],
+        "q_shadow_event_given_no_record_entry": q_shadow["resolved_only_estimate"],
+        "a_K_no_record_entry_given_event": a_no_entry["resolved_only_estimate"],
+    }
 
     return {
-        "schema": "rec-shadow-selection-analysis-v2",
+        "schema": "rec-shadow-selection-analysis-v3",
         "ledger_path": str(ledger_path),
         "truth_path": str(truth_path),
         "joined_truth_rows": joined_rows,
-        "weighted_resolved_truth_sample_rows": sampled_rows,
+        "probability_sampled_truth_rows": sampled_rows,
         "weighted_totals": dict(totals),
-        "estimands": {
-            "q_acquisition_shadow_event_given_primary_unavailable": _ratio(
-                totals["A0_positive"], totals["A0_resolved"]
-            ),
-            "a_A_primary_unavailable_given_event": _ratio(
-                totals["A0_positive"], totals["positive"]
-            ),
-            "q_gate_unevaluable_event_given_gate_unevaluable": _ratio(
-                totals["gate_unevaluable_positive"], totals["gate_unevaluable_resolved"]
-            ),
-            "a_gate_unevaluable_given_event": _ratio(
-                totals["gate_unevaluable_positive"], totals["positive"]
-            ),
-            "q_B_event_given_registered_baseline_gate_evaluable": _ratio(
-                totals["R0_positive"], totals["R0_resolved"]
-            ),
-            "a_R_registered_baseline_given_event_gate_evaluable": _ratio(
-                totals["R0_positive"], totals["gate_evaluable_positive"]
-            ),
-            "q_shadow_event_given_no_record_entry": _ratio(
-                totals["K0_positive"], totals["K0_resolved"]
-            ),
-            "a_K_no_record_entry_given_event": _ratio(
-                totals["K0_positive"], totals["positive"]
-            ),
+        "reference_resolution": {
+            "overall": _q_summary(totals, "all"),
+            "acquisition_shadow_A0": q_acquisition,
+            "gate_unevaluable_after_acquisition_G0": q_gate_unevaluable,
+            "gate_shadow_registered_baseline_R0": q_baseline,
+            "record_shadow_no_entry_K0": q_shadow,
+        },
+        "estimands": legacy_estimands,
+        "partial_identification": {
+            "q_event_given_acquisition_shadow_A0": q_acquisition,
+            "a_primary_unavailable_given_event": a_acquisition,
+            "q_event_given_gate_unevaluable_after_acquisition_G0": q_gate_unevaluable,
+            "a_gate_unevaluable_given_event_primary_available": a_gate_unevaluable,
+            "q_event_given_registered_baseline_R0": q_baseline,
+            "a_registered_baseline_given_event_gate_evaluable": a_baseline,
+            "q_event_given_no_record_entry_K0": q_shadow,
+            "a_no_record_entry_given_event": a_no_entry,
         },
         "interpretation_boundary": (
-            "Design-weighted descriptive estimands are separated by acquisition, gate-evaluability and entry layer. "
-            "Confirmatory uncertainty must respect independent ecological units, the master exposure universe, "
-            "and the frozen truth-sampling design."
+            "Resolved-only estimates are conditional on reference-resolved truth. Bounds treat every sampled "
+            "reference-unresolved label as unknown positive/negative truth and therefore expose the REC dark mass "
+            "instead of converting it to no-event. Gate-unevaluable loss is conditioned on primary acquisition "
+            "being available so acquisition and gate layers are not double-counted. Confirmatory uncertainty must "
+            "also respect independent ecological units, the master exposure universe and the frozen truth-sampling design."
         ),
     }
 
