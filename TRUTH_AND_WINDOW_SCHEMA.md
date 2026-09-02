@@ -4,26 +4,30 @@ Status: design draft; freeze before confirmatory field collection.
 
 ## Principle
 
-The exposure universe, primary sensor output, registered-deviation gate, archive/record-entry policy, independent truth and downstream ecological unit must be separately addressable. No field may be silently inferred from another.
+The exposure universe, gate evaluability, gate result, archive/record-entry policy, independent truth and downstream ecological unit must be separately addressable. No field may be silently inferred from another.
+
+The crucial distinction for staged sensors is:
+
+> **not-evaluable is not baseline.**
+
+A prerequisite failure can prevent a downstream gate from being evaluated at all. Such windows remain in the master exposure universe but must not be counted as logical baseline.
 
 ## Master exposure universe
 
 REC requires an exposure denominator independent of the tested gate.
 
-Each row belongs to a frozen master exposure grid and must include:
+Each row belongs to a frozen master exposure grid and includes:
 
 - `exposure_grid_id`
 - `exposure_source`
 - `exposure_source_version`
 - `exposure_defined_independently_of_gate`: boolean
 
-Examples of acceptable exposure sources include a fixed sampling clock or a continuous independent reference stream partitioned into frozen windows.
-
-An event log is **not** an acceptable exposure source for an event-triggered system because non-entered windows are missing from that log by construction.
+An event-triggered event log is not an acceptable exposure source because non-entered windows are missing from that log by construction.
 
 ## Required identifiers
 
-Each exposure window must include:
+Each exposure window includes:
 
 - `system_id`
 - `site_id`
@@ -40,40 +44,49 @@ Each exposure window must include:
 
 ## Primary-stream pre-gate evidence
 
-These are measurements, not truth, and must be retained for all windows where technically available, including logical B and non-entered windows:
+These are measurements, not truth, and should be retained for all windows where technically available:
 
 - `target_raw_score`
-- `nuisance_raw_score_*` for each predeclared nuisance family or adapter
+- `nuisance_raw_score_*`
 - `observability_raw_*`
 - `coupled_response_raw_*` if applicable
 - `primary_stream_available`
 - `pregate_evidence_version`
 
-If a physically non-entered window has no full-resolution primary record, preserve whatever pre-gate evidence actually drove the gate. Do not fabricate unavailable evidence.
+If a physically non-entered or not-evaluable window lacks some primary evidence, preserve that missingness explicitly. Do not fabricate unavailable evidence.
 
-If the registered-deviation gate uses additional raw quantities, every gate input must be retained or reproducibly derivable from immutable raw data.
-
-## Chapter 2 registered-deviation gate
+## REC gate layer
 
 Required fields:
 
-- `registered_deviation`: boolean; `False` means logical registered baseline at the gate layer
+- `gate_evaluable`: boolean
+- `registered_deviation`: boolean
+- `gate_not_evaluable_reason`
 - `gate_type`: scalar / composite
 - `gate_version`
 - `gate_configuration_id`
 - `gate_threshold` if and only if a real scalar threshold exists
 - `gate_inputs_complete`: boolean
 
-Optional but recommended for composite gates:
+The Boolean `registered_deviation` is meaningful **only when `gate_evaluable=True`**. For row-oriented storage, not-evaluable windows use `registered_deviation=False` as a placeholder, but they are excluded from logical-baseline denominators.
 
-- `gate_component_result_*`
-- `gate_margin` if the gate has a meaningful signed distance to its decision boundary
+Semantics:
+
+- `gate_evaluable=True, registered_deviation=True` → registered deviation;
+- `gate_evaluable=True, registered_deviation=False` → logical registered baseline `B_reg`;
+- `gate_evaluable=False` → prerequisite/measurement path prevented gate evaluation; this is **not B**.
+
+If `gate_evaluable=False`, `gate_not_evaluable_reason` is required, for example:
+
+- `missing_focal_roi`
+- `primary_stream_unavailable`
+- `insufficient_gate_inputs`
+- `hardware_state`
+- `other`
+
+If `gate_evaluable=True`, `gate_inputs_complete=True` is required.
 
 Do not invent a scalar threshold for a composite gate.
-
-**Logical baseline semantics:**
-
-`registered_deviation=False` means only **no registered deviation under the frozen gate rule**. It is not biological no-event or absence.
 
 ## REC archive / record-entry layer
 
@@ -92,13 +105,14 @@ Optional fields:
 - `entry_failure_reason`
 - `storage_retention_stage`
 
-Interpretation:
+Interpretation examples:
 
-- `registered_deviation=False, record_entry_present=True`: logical B exists and is physically represented in the stored record.
-- `registered_deviation=False, record_entry_present=False`: exposure lies in the REC record-entry shadow set.
-- `registered_deviation=True, record_entry_present=False`: a registered deviation failed later archival/retention and must be treated as a distinct pipeline failure, not baseline.
+- evaluable logical B + entry present: baseline exposure is stored;
+- evaluable logical B + no entry: logical B also lies in the archive shadow set;
+- not-evaluable + no entry: pre-gate measurement shadow;
+- registered deviation + no entry: later archival/retention loss, not baseline.
 
-Do not assume `record_entry_present == registered_deviation` unless a versioned trigger-only policy actually defines that equality.
+Do not assume `record_entry_present == registered_deviation` unless a versioned policy actually defines that equality.
 
 ## Frozen calibrated support fields
 
@@ -111,21 +125,19 @@ Produced only after development calibration is frozen:
 - `attribution_supported`
 - `calibration_manifest_id`
 
-The exact calibration rule for each field is versioned separately.
-
-Calibrated T/N/U adjudication is applied only after the registered-deviation gate. Positive support with `registered_deviation=False` is an internal contradiction unless the project has explicitly defined and versioned a different pipeline.
+Calibrated T/N/U adjudication occurs only after the registered-deviation gate. Positive post-gate support while `gate_evaluable=False` or while the pipeline defines logical B is an internal contradiction unless a different pipeline is explicitly versioned.
 
 ## TNOA record
 
 Where a logical observation record is represented:
 
 - `decision`: B / T / N / U
-- `reason`: reusable API reason or frozen project-specific reason
+- `reason`
 - `decision_rule_version`
 
-Do not infer biological absence from `B`, `N`, `U`, no record entry, or low target score.
+Do not infer biological absence from B, N, U, not-evaluable, no record entry, or low target score.
 
-A physically non-entered exposure may have no TNOA `decision` because TNOA begins after record representation. REC still retains the exposure row through the independent master grid.
+A not-evaluable or physically non-entered exposure may have no TNOA decision because TNOA begins after record representation. REC still retains the exposure through the independent master grid.
 
 ## Binary comparator
 
@@ -138,7 +150,7 @@ The binary mapping must be a frozen deterministic coarsening of the process-reso
 
 ## Independent reference truth
 
-Reference annotators must not see model scores, gate outputs, entry status or TNOA decisions during primary truth annotation whenever practical.
+Reference annotators must not see model scores, gate evaluability/result, entry status or TNOA decisions during primary truth annotation whenever practical.
 
 ### Biological event
 
@@ -147,12 +159,13 @@ Reference annotators must not see model scores, gate outputs, entry status or TN
 - `target_event_definition_version`
 - `target_count_or_event_count` if relevant
 
-Chapter-2 derived fields:
+Derived REC fields:
 
-- `threshold_absorbed_event`: derive only as `target_truth=positive AND registered_deviation=False`
-- `shadow_event`: derive only as `target_truth=positive AND record_entry_present=False`
+- `threshold_absorbed_event`: `target_truth=positive AND gate_evaluable=True AND registered_deviation=False`
+- `gate_unevaluable_event`: `target_truth=positive AND gate_evaluable=False`
+- `shadow_event`: `target_truth=positive AND record_entry_present=False`
 
-Never manually label these fields; derive them from separately recorded truth and pipeline state.
+Never manually define these from algorithm output; derive them from separately recorded truth and pipeline state.
 
 ### Nuisance
 
@@ -161,21 +174,17 @@ For each predeclared family:
 - `nuisance_truth_<family>`: present / absent / unresolved
 - `nuisance_effect_<family>`: masks_target / mimics_target / attribution_conflict / acquisition_fault / none / unresolved
 
-Nuisance is multilabel.
-
 ### Observability
 
 - `observability_truth`: observable / compromised / unobservable / unresolved
 - `observability_reason`: occlusion / blur / exposure / framing / temporal_gap / hardware / masking / other / none
 
-Recommended Chapter-2 measurements when independently defensible:
+Recommended independently defensible measurements:
 
 - `occlusion_grade`
 - `target_scale_or_distance_proxy`
 - `illumination_grade`
 - `masking_grade`
-
-These fields must not be reverse-engineered from whether the gate fired or an entry exists.
 
 ### Coupled response and attribution
 
@@ -185,9 +194,9 @@ If used:
 - `attribution_truth`: supported / unsupported / unresolved
 - `attribution_reference_channel`
 
-## Chapter-2 truth-sampling provenance
+## Truth-sampling provenance
 
-Because logical B and shadow windows may be extremely common, REC may use prespecified stratified truth annotation instead of exhaustive review.
+Because baseline, not-evaluable and shadow windows may be common, REC may use prespecified stratified truth annotation.
 
 For every exposure row store:
 
@@ -197,14 +206,13 @@ For every exposure row store:
 - `truth_inclusion_probability`
 - `truth_sampling_weight`
 
-Sampling strata must be defined before confirmatory truth is opened. Suspicious-looking B/shadow windows cannot be preferentially added without inclusion-probability accounting or explicit exploratory status.
+At minimum, the design must permit reconstruction across:
 
-At minimum, the frozen sampling design should allow reconstruction across:
-
-- `registered_deviation` state;
-- `record_entry_present` state;
+- gate evaluability;
+- registered-deviation state among evaluable windows;
+- record-entry state;
 - independent ecological unit;
-- frozen Chapter-2 measurement strata.
+- frozen REC condition strata.
 
 ## Annotation provenance
 
@@ -214,15 +222,13 @@ At minimum, the frozen sampling design should allow reconstruction across:
 - `adjudication_status`
 - `annotation_duration_seconds`
 - `annotation_version`
-- `annotator_blinded_to_gate`: boolean
-- `annotator_blinded_to_entry`: boolean
-- `annotator_blinded_to_scores`: boolean
-
-Protected double-annotation subsets must be selected before adjudication.
+- `annotator_blinded_to_gate`
+- `annotator_blinded_to_entry`
+- `annotator_blinded_to_scores`
 
 ## Ecological-unit table
 
-A separate table aggregates exposure windows to the frozen ecological unit, preferred `site_id × recording_day` for System A unless pilot data justify another grouping before confirmatory freeze.
+A separate table aggregates master exposure windows to the frozen ecological unit.
 
 Required shared columns:
 
@@ -236,22 +242,19 @@ Required shared columns:
 - `reference_target_prevalence`
 - prespecified ecological covariate(s)
 
-Required Chapter-1 columns:
-
-- `binary_target_prevalence_or_model_estimate`
-- `process_resolved_target_prevalence_or_model_estimate`
-- `verified_nuisance_fraction`
-- `compromised_observability_fraction`
-
 Required REC/Chapter-2 columns where estimable:
 
+- `gate_not_evaluable_windows`
 - `registered_baseline_windows`
+- `registered_deviation_windows`
 - `truth_sampled_registered_baseline_windows`
 - `reference_positive_registered_baseline_windows`
 - `baseline_contamination_estimate`
+- `reference_positive_gate_not_evaluable_windows`
+- `gate_unevaluable_event_fraction`
 - `reference_positive_windows`
 - `threshold_absorbed_positive_windows`
-- `event_absorption_estimate`
+- `event_baseline_absorption_estimate`
 - `nonentered_exposure_windows`
 - `truth_sampled_nonentered_windows`
 - `reference_positive_nonentered_windows`
@@ -259,57 +262,68 @@ Required REC/Chapter-2 columns where estimable:
 - `event_nonentry_estimate`
 - `gate_version`
 - `entry_policy_version`
-- frozen Chapter-2 stratum summaries
 
-Population estimates based on sampled B/shadow windows must use the frozen sampling weights/design.
+Required Chapter-1 columns:
+
+- `binary_target_prevalence_or_model_estimate`
+- `process_resolved_target_prevalence_or_model_estimate`
+- `verified_nuisance_fraction`
+- `compromised_observability_fraction`
+
+Population estimates based on sampled baseline/not-evaluable/shadow windows must honor the frozen sampling design.
 
 ## REC derived quantities
 
-Do not store these as primary hand-entered truth fields; compute them reproducibly.
-
 ### Logical baseline contamination
 
-`q_B = P(target_truth=positive | registered_deviation=False, reference truth resolved)`.
+`q_B = P(target_truth=positive | gate_evaluable=True, registered_deviation=False, truth resolved)`.
 
-### Event absorption
+### Baseline absorption among true events
 
-`a = P(registered_deviation=False | target_truth=positive, reference truth resolved)`.
+`a_B = P(gate_evaluable=True, registered_deviation=False | target_truth=positive)`.
+
+### Gate-not-evaluable event loss
+
+`a_U = P(gate_evaluable=False | target_truth=positive)`.
+
+### Total failure to register deviation
+
+`a_pre = P(gate_evaluable=False OR registered_deviation=False | target_truth=positive)`.
+
+Report `a_B` and `a_U` separately even if `a_pre` is also shown.
 
 ### Shadow contamination
 
-`q_shadow = P(target_truth=positive | record_entry_present=False, reference truth resolved)`.
+`q_shadow = P(target_truth=positive | record_entry_present=False, truth resolved)`.
 
 ### Event non-entry
 
-`a_K = P(record_entry_present=False | target_truth=positive, reference truth resolved)`.
+`a_K = P(record_entry_present=False | target_truth=positive)`.
 
-### Ecological-unit absorption burden
-
-`A_g = P(registered_deviation=False | target_truth=positive, ecological_unit=g)`.
-
-Keep `q_B`, `a`, `q_shadow`, and `a_K` separate; they condition on different denominators.
+Keep these quantities separate; they condition on different stages and denominators.
 
 ## Fail-closed validity checks
 
 A confirmatory row is invalid rather than silently repaired if:
 
-- the master exposure grid identifier/source/version is missing;
+- the master exposure identifier/source/version is missing;
 - exposure is not defined independently of the tested gate;
 - a held-out group also appears in development;
-- positive calibrated support appears with an internally contradictory gate/decision input;
-- reference truth is unresolved but encoded as negative;
 - exposure is zero or missing;
 - gate version/configuration is missing;
+- `gate_evaluable=False` but `registered_deviation=True`;
+- `gate_evaluable=False` without a not-evaluable reason;
+- `gate_evaluable=True` but required gate inputs are incomplete;
+- scalar/composite threshold representation is inconsistent;
 - entry policy version/type is missing;
-- a scalar `gate_threshold` is populated for a composite gate without a documented mapping;
-- required gate inputs are missing and the gate result cannot be reproduced;
-- `registered_deviation=True` while primary stream or gate inputs are unavailable;
-- `record_entry_present=True` while the entry policy inputs needed to reproduce that entry are declared incomplete;
-- `threshold_absorbed_event` disagrees with the derivation from `target_truth` and `registered_deviation`;
-- `shadow_event` disagrees with the derivation from `target_truth` and `record_entry_present`;
-- a truth-sampled window lacks sampling provenance when a non-exhaustive sampling design is used;
-- a truth-unsampled row carries resolved truth;
-- required reference channel is missing for a truth claim that cannot be established from the primary stream.
+- `record_entry_present=True` while required entry-policy inputs are incomplete;
+- resolved truth appears on a truth-unsampled row;
+- sampling weight is inconsistent with inclusion probability;
+- any derived absorbed/unevaluable/shadow flag disagrees with separately recorded truth and pipeline state;
+- no truth-sampled evaluable logical-B window exists;
+- not-evaluable windows exist but the frozen design requires their estimation and none are truth-sampled;
+- non-entered exposures exist but none are truth-sampled;
+- required independent reference channel is missing.
 
 Invalid rows and reasons are counted and reported; they are not silently dropped.
 
@@ -321,10 +335,11 @@ The pilot may additionally record:
 - candidate nuisance-family notes;
 - candidate window-boundary notes;
 - candidate exposure-grid alternatives;
-- candidate Chapter-2 condition-stratum notes;
+- candidate not-evaluable reason refinements;
+- candidate REC condition-stratum notes;
 - candidate gate-component diagnostics;
 - candidate entry-policy diagnostics;
 - hardware failure diagnostics;
 - proposed ecological grouping alternatives.
 
-These exploratory fields may inform the frozen confirmatory schema but cannot be introduced after confirmatory labels are opened.
+These may inform the frozen confirmatory schema but cannot be introduced after confirmatory truth is opened.
