@@ -1,29 +1,35 @@
-# Paper 2 field truth and REC observation-window schema
+# REC field truth and observation-window schema
 
-Status: design draft; freeze before confirmatory field collection.
+Status: **design contract; freeze before confirmatory collection**.
 
-## Principle
+## 1. Principle
 
-The exposure universe, primary sensor output, registered-deviation gate, archive/record-entry policy, independent truth and downstream ecological unit must be separately addressable. No field may be silently inferred from another.
+REC separates the exposure universe, primary acquisition, gate evaluability, gate result, record entry, independent truth, and later TNOA semantics.
 
-## Master exposure universe
+No field may be silently inferred from another.
 
-REC requires an exposure denominator independent of the tested gate.
+The pre-TNOA chain is:
 
-Each row belongs to a frozen master exposure grid and must include:
+`Omega -> acquisition A -> gate evaluability -> gate R -> entry K -> entered record -> TNOA`.
+
+A missing or non-evaluable stage is not encoded as a negative result at the next stage.
+
+## 2. Master exposure provenance
+
+Every row belongs to a frozen exposure universe generated independently of the tested gate.
+
+Required:
 
 - `exposure_grid_id`
 - `exposure_source`
 - `exposure_source_version`
-- `exposure_defined_independently_of_gate`: boolean
+- `exposure_defined_independently_of_gate`
 
-Examples of acceptable exposure sources include a fixed sampling clock or a continuous independent reference stream partitioned into frozen windows.
+Valid exposure sources include a fixed clock, continuous independent reference stream, continuous primary stream, or another predeclared schedule.
 
-An event log is **not** an acceptable exposure source for an event-triggered system because non-entered windows are missing from that log by construction.
+An event log alone is not a valid exposure denominator for an event-triggered system.
 
-## Required identifiers
-
-Each exposure window must include:
+## 3. Required identifiers
 
 - `system_id`
 - `site_id`
@@ -36,295 +42,296 @@ Each exposure window must include:
 - `exposure_seconds`
 - `development_or_heldout`
 
-`window_id` must be unique. `development_or_heldout` is assigned at the group level before calibration.
+`window_id` is unique and joins the truth table to the master exposure ledger.
 
-## Primary-stream pre-gate evidence
+Development/held-out assignment is made at an independent grouping level, not frame by frame.
 
-These are measurements, not truth, and must be retained for all windows where technically available, including logical B and non-entered windows:
+## 4. Primary acquisition A
 
-- `target_raw_score`
-- `nuisance_raw_score_*` for each predeclared nuisance family or adapter
-- `observability_raw_*`
-- `coupled_response_raw_*` if applicable
+Required:
+
+- `primary_stream_expected`
 - `primary_stream_available`
+- `acquisition_status`
 - `pregate_evidence_version`
 
-If a physically non-entered window has no full-resolution primary record, preserve whatever pre-gate evidence actually drove the gate. Do not fabricate unavailable evidence.
+Controlled `acquisition_status` values:
 
-If the registered-deviation gate uses additional raw quantities, every gate input must be retained or reproducibly derivable from immutable raw data.
+- `available`
+- `planned_not_acquired`
+- `hardware_failure`
+- `corrupt_or_missing`
+- `unknown_unavailable`
 
-## Chapter 2 registered-deviation gate
+Rules:
 
-Required fields:
+- available primary stream -> `acquisition_status=available`;
+- `planned_not_acquired` requires primary acquisition not expected and unavailable;
+- expected-but-unavailable acquisition is an acquisition shadow;
+- acquisition unavailable does not imply biological no-event.
 
-- `registered_deviation`: boolean; `False` means logical registered baseline at the gate layer
-- `gate_type`: scalar / composite
+Retain every pre-gate quantity used by the tested gate whenever technically available, including raw target/nuisance/observability/coupled-response diagnostics.
+
+## 5. Gate evaluability and registered deviation R
+
+Required:
+
+- `gate_evaluable`
+- `registered_deviation`
+- `gate_type`
 - `gate_version`
 - `gate_configuration_id`
-- `gate_threshold` if and only if a real scalar threshold exists
-- `gate_inputs_complete`: boolean
+- `gate_threshold`
+- `gate_inputs_complete`
 
-Optional but recommended for composite gates:
+Gate types:
 
-- `gate_component_result_*`
-- `gate_margin` if the gate has a meaningful signed distance to its decision boundary
+- `scalar`
+- `composite`
 
-Do not invent a scalar threshold for a composite gate.
+Semantics:
 
-**Logical baseline semantics:**
+### Gate evaluable
 
-`registered_deviation=False` means only **no registered deviation under the frozen gate rule**. It is not biological no-event or absence.
+If `gate_evaluable=True`:
 
-## REC archive / record-entry layer
+- primary acquisition must be available;
+- required gate inputs must be complete;
+- `registered_deviation` must be explicitly `true` or `false`.
 
-Gate state and physical record entry are separate objects.
+`registered_deviation=False` is logical registered baseline at the gate layer. It means **no registered deviation under that frozen rule**, not biological absence.
 
-Required fields:
+### Gate not evaluable
 
-- `record_entry_present`: boolean
+If `gate_evaluable=False`:
+
+- `registered_deviation` must be blank/undefined;
+- it must not be encoded as `false`;
+- `threshold_absorbed_event` is undefined.
+
+This rule prevents an unobservable or unavailable primary window from being silently transformed into baseline.
+
+For a scalar gate, a real numeric threshold is required. For a composite gate, do not invent a pseudo-scalar threshold.
+
+## 6. Record-entry layer K
+
+Required:
+
+- `record_entry_present`
 - `entry_policy_version`
-- `entry_policy_type`: `trigger_only` / `fixed_schedule` / `hybrid` / `postcapture_filter` / `other`
-- `entry_policy_inputs_complete`: boolean
+- `entry_policy_type`
+- `entry_policy_inputs_complete`
 
-Optional fields:
+Controlled entry-policy types:
+
+- `trigger_only`
+- `fixed_schedule`
+- `hybrid`
+- `postcapture_filter`
+- `other`
+
+Optional provenance:
 
 - `record_entry_id`
 - `entry_failure_reason`
 - `storage_retention_stage`
 
-Interpretation:
+Examples:
 
-- `registered_deviation=False, record_entry_present=True`: logical B exists and is physically represented in the stored record.
-- `registered_deviation=False, record_entry_present=False`: exposure lies in the REC record-entry shadow set.
-- `registered_deviation=True, record_entry_present=False`: a registered deviation failed later archival/retention and must be treated as a distinct pipeline failure, not baseline.
+- gate false, entry true: stored baseline under fixed/hybrid acquisition;
+- gate false, entry false: gate/entry shadow under an event-driven policy;
+- gate true, entry false: archive/retention loss;
+- acquisition unavailable: gate result undefined; do not call this gate rejection.
 
-Do not assume `record_entry_present == registered_deviation` unless a versioned trigger-only policy actually defines that equality.
+Record entry is a measurement-process state, not event truth.
 
-## Frozen calibrated support fields
+## 7. Independent reference truth
 
-Produced only after development calibration is frozen:
+Reference truth is established independently of the tested primary gate and entry policy.
 
-- `target_supported`
-- `nuisance_supported`
-- `observable_supported`
-- `coupled_response_supported`
-- `attribution_supported`
-- `calibration_manifest_id`
+Required:
 
-The exact calibration rule for each field is versioned separately.
-
-Calibrated T/N/U adjudication is applied only after the registered-deviation gate. Positive support with `registered_deviation=False` is an internal contradiction unless the project has explicitly defined and versioned a different pipeline.
-
-## TNOA record
-
-Where a logical observation record is represented:
-
-- `decision`: B / T / N / U
-- `reason`: reusable API reason or frozen project-specific reason
-- `decision_rule_version`
-
-Do not infer biological absence from `B`, `N`, `U`, no record entry, or low target score.
-
-A physically non-entered exposure may have no TNOA `decision` because TNOA begins after record representation. REC still retains the exposure row through the independent master grid.
-
-## Binary comparator
-
-Where Chapter 1 is evaluated:
-
-- `binary_target`
-- `binary_mapping_version`
-
-The binary mapping must be a frozen deterministic coarsening of the process-resolved record. It cannot be retuned on held-out truth.
-
-## Independent reference truth
-
-Reference annotators must not see model scores, gate outputs, entry status or TNOA decisions during primary truth annotation whenever practical.
-
-### Biological event
-
-- `target_truth`: positive / negative / unresolved
+- `target_truth`: `positive / negative / unresolved`
 - `target_truth_source`
 - `target_event_definition_version`
-- `target_count_or_event_count` if relevant
 
-Chapter-2 derived fields:
+Optional:
 
-- `threshold_absorbed_event`: derive only as `target_truth=positive AND registered_deviation=False`
-- `shadow_event`: derive only as `target_truth=positive AND record_entry_present=False`
+- `target_count_or_event_count`
+- nuisance truth families
+- observability truth
+- coupled-response truth
+- attribution truth
 
-Never manually label these fields; derive them from separately recorded truth and pipeline state.
+Reference annotators should be blind to primary scores, gate status, entry status, and TNOA output whenever practical.
 
-### Nuisance
+Reference unresolved is never converted to negative truth by default.
 
-For each predeclared family:
+## 8. Derived REC event labels
 
-- `nuisance_truth_<family>`: present / absent / unresolved
-- `nuisance_effect_<family>`: masks_target / mimics_target / attribution_conflict / acquisition_fault / none / unresolved
+These are derived, never primary hand annotations.
 
-Nuisance is multilabel.
+### Threshold-absorbed event
 
-### Observability
+Defined only when the gate is evaluable:
 
-- `observability_truth`: observable / compromised / unobservable / unresolved
-- `observability_reason`: occlusion / blur / exposure / framing / temporal_gap / hardware / masking / other / none
+`threshold_absorbed_event = target_truth=positive AND gate_evaluable=True AND registered_deviation=False`.
 
-Recommended Chapter-2 measurements when independently defensible:
+### Shadow event
 
-- `occlusion_grade`
-- `target_scale_or_distance_proxy`
-- `illumination_grade`
-- `masking_grade`
+`shadow_event = target_truth=positive AND record_entry_present=False`.
 
-These fields must not be reverse-engineered from whether the gate fired or an entry exists.
+### Acquisition-shadow event
 
-### Coupled response and attribution
+`acquisition_shadow_event = target_truth=positive AND primary_stream_available=False`.
 
-If used:
+The first is undefined if the gate was not evaluable. The second and third may still be established if independent reference truth resolves the event.
 
-- `coupled_response_truth`: present / absent / unresolved
-- `attribution_truth`: supported / unsupported / unresolved
-- `attribution_reference_channel`
+## 9. Truth-sampling provenance
 
-## Chapter-2 truth-sampling provenance
+Because B and non-entered exposures may dominate the denominator, probability sampling is allowed.
 
-Because logical B and shadow windows may be extremely common, REC may use prespecified stratified truth annotation instead of exhaustive review.
+Required for every row:
 
-For every exposure row store:
-
-- `truth_sampled`: boolean
+- `truth_sampled`
 - `truth_sampling_design_version`
 - `truth_sampling_stratum`
 - `truth_inclusion_probability`
 - `truth_sampling_weight`
 
-Sampling strata must be defined before confirmatory truth is opened. Suspicious-looking B/shadow windows cannot be preferentially added without inclusion-probability accounting or explicit exploratory status.
+For sampled truth, `weight = 1 / inclusion_probability` under the current simple contract.
 
-At minimum, the frozen sampling design should allow reconstruction across:
+For unsampled truth:
 
-- `registered_deviation` state;
-- `record_entry_present` state;
-- independent ecological unit;
-- frozen Chapter-2 measurement strata.
+- `target_truth` must remain `unresolved` in the audit table;
+- sampling-specific numeric fields remain blank.
 
-## Annotation provenance
+Suspicious shadow windows may not be added preferentially to confirmatory truth without recoverable inclusion probabilities or explicit exploratory status.
 
-- `annotator_id_primary`
-- `annotator_id_secondary` where double-coded
-- `adjudicated`
-- `adjudication_status`
-- `annotation_duration_seconds`
-- `annotation_version`
-- `annotator_blinded_to_gate`: boolean
-- `annotator_blinded_to_entry`: boolean
-- `annotator_blinded_to_scores`: boolean
+## 10. Annotation provenance
 
-Protected double-annotation subsets must be selected before adjudication.
+Required:
 
-## Ecological-unit table
+- `annotator_blinded_to_gate`
+- `annotator_blinded_to_entry`
+- `annotator_blinded_to_scores`
 
-A separate table aggregates exposure windows to the frozen ecological unit, preferred `site_id × recording_day` for System A unless pilot data justify another grouping before confirmatory freeze.
+Recommended:
 
-Required shared columns:
+- primary/secondary annotator IDs
+- adjudication status
+- annotation duration
+- annotation version
+
+Protected double-annotation subsets are selected before adjudication.
+
+## 11. Relation to TNOA
+
+Where an observation enters the semantic record, downstream fields may include:
+
+- `decision`: B/T/N/U
+- `reason`
+- `decision_rule_version`
+- later `binary_target`
+- `binary_mapping_version`
+
+A physically non-entered exposure may have no TNOA decision at all. REC still retains the exposure through `Omega`.
+
+Therefore:
+
+- REC: `no record != no event`;
+- TNOA: `not-target / low support != biological absence`.
+
+## 12. REC estimands
+
+### Acquisition-shadow contamination
+
+`q_A = P(E=1 | primary unavailable, truth resolved)`.
+
+### Event acquisition loss
+
+`a_A = P(primary unavailable | E=1, truth resolved)`.
+
+### Gate-baseline contamination
+
+Conditional on gate evaluability:
+
+`q_B = P(E=1 | R=0, gate evaluable, truth resolved)`.
+
+### Event gate absorption
+
+`a_R = P(R=0 | E=1, gate evaluable, truth resolved)`.
+
+### Record-entry shadow contamination
+
+`q_K = P(E=1 | K=0, truth resolved)`.
+
+### Event non-entry
+
+`a_K = P(K=0 | E=1, truth resolved)`.
+
+Always state the conditioning set. Do not combine these into one generic false-negative rate unless the sensor architecture makes them identical by design.
+
+## 13. Ecological-unit table
+
+Aggregate only after window-level provenance is frozen.
+
+Shared columns should include:
 
 - `ecological_unit_id`
-- `site_id`
-- `recording_day`
 - `total_exposure_windows`
 - `resolved_reference_windows`
 - `unresolved_reference_windows`
 - `reference_target_positive_windows`
 - `reference_target_prevalence`
-- prespecified ecological covariate(s)
+- acquisition-shadow fraction
+- gate-unevaluable fraction
+- registered-baseline fraction
+- record-nonentry fraction
+- reference-positive counts within each shadow layer
+- prespecified ecological/measurement covariates
 
-Required Chapter-1 columns:
+Chapter-1 downstream comparison may additionally store binary and process-resolved estimates.
 
-- `binary_target_prevalence_or_model_estimate`
-- `process_resolved_target_prevalence_or_model_estimate`
-- `verified_nuisance_fraction`
-- `compromised_observability_fraction`
+Population estimates based on sampled truth use the frozen sampling design.
 
-Required REC/Chapter-2 columns where estimable:
-
-- `registered_baseline_windows`
-- `truth_sampled_registered_baseline_windows`
-- `reference_positive_registered_baseline_windows`
-- `baseline_contamination_estimate`
-- `reference_positive_windows`
-- `threshold_absorbed_positive_windows`
-- `event_absorption_estimate`
-- `nonentered_exposure_windows`
-- `truth_sampled_nonentered_windows`
-- `reference_positive_nonentered_windows`
-- `shadow_contamination_estimate`
-- `event_nonentry_estimate`
-- `gate_version`
-- `entry_policy_version`
-- frozen Chapter-2 stratum summaries
-
-Population estimates based on sampled B/shadow windows must use the frozen sampling weights/design.
-
-## REC derived quantities
-
-Do not store these as primary hand-entered truth fields; compute them reproducibly.
-
-### Logical baseline contamination
-
-`q_B = P(target_truth=positive | registered_deviation=False, reference truth resolved)`.
-
-### Event absorption
-
-`a = P(registered_deviation=False | target_truth=positive, reference truth resolved)`.
-
-### Shadow contamination
-
-`q_shadow = P(target_truth=positive | record_entry_present=False, reference truth resolved)`.
-
-### Event non-entry
-
-`a_K = P(record_entry_present=False | target_truth=positive, reference truth resolved)`.
-
-### Ecological-unit absorption burden
-
-`A_g = P(registered_deviation=False | target_truth=positive, ecological_unit=g)`.
-
-Keep `q_B`, `a`, `q_shadow`, and `a_K` separate; they condition on different denominators.
-
-## Fail-closed validity checks
+## 14. Fail-closed checks
 
 A confirmatory row is invalid rather than silently repaired if:
 
-- the master exposure grid identifier/source/version is missing;
-- exposure is not defined independently of the tested gate;
-- a held-out group also appears in development;
-- positive calibrated support appears with an internally contradictory gate/decision input;
-- reference truth is unresolved but encoded as negative;
-- exposure is zero or missing;
-- gate version/configuration is missing;
-- entry policy version/type is missing;
-- a scalar `gate_threshold` is populated for a composite gate without a documented mapping;
-- required gate inputs are missing and the gate result cannot be reproduced;
-- `registered_deviation=True` while primary stream or gate inputs are unavailable;
-- `record_entry_present=True` while the entry policy inputs needed to reproduce that entry are declared incomplete;
-- `threshold_absorbed_event` disagrees with the derivation from `target_truth` and `registered_deviation`;
-- `shadow_event` disagrees with the derivation from `target_truth` and `record_entry_present`;
-- a truth-sampled window lacks sampling provenance when a non-exhaustive sampling design is used;
-- a truth-unsampled row carries resolved truth;
-- required reference channel is missing for a truth claim that cannot be established from the primary stream.
+- exposure denominator provenance is missing or gate-defined;
+- development/held-out groups leak;
+- primary acquisition state is internally inconsistent;
+- gate is marked evaluable without available primary evidence and complete inputs;
+- gate is not evaluable but `registered_deviation` is encoded as false/true;
+- a scalar threshold is invented for a composite gate;
+- record entry is present without available primary acquisition under the current architecture;
+- resolved truth is attached to an unsampled row;
+- sampling weight disagrees with the frozen inclusion probability;
+- `threshold_absorbed_event` is supplied when gate is non-evaluable;
+- any derived shadow flag disagrees with independently recorded truth and pipeline state;
+- required reference evidence is missing for a biological claim.
 
-Invalid rows and reasons are counted and reported; they are not silently dropped.
+Invalid rows are counted/reported; they are not silently repaired into baseline or no-event.
 
-## Pilot-only fields
+## 15. Executable contracts
 
-The pilot may additionally record:
+Master exposure ledger:
 
-- annotation difficulty score;
-- candidate nuisance-family notes;
-- candidate window-boundary notes;
-- candidate exposure-grid alternatives;
-- candidate Chapter-2 condition-stratum notes;
-- candidate gate-component diagnostics;
-- candidate entry-policy diagnostics;
-- hardware failure diagnostics;
-- proposed ecological grouping alternatives.
+```bash
+python scripts/validate_exposure_ledger.py examples/exposure_ledger.csv
+```
 
-These exploratory fields may inform the frozen confirmatory schema but cannot be introduced after confirmatory labels are opened.
+Truth/gate/entry audit:
+
+```bash
+python scripts/validate_chapter2_windows.py examples/chapter2_windows.csv
+```
+
+Joined layer analysis:
+
+```bash
+python scripts/analyze_shadow_selection.py \
+  examples/exposure_ledger.csv \
+  examples/chapter2_windows.csv
+```
