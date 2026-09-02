@@ -1,3 +1,4 @@
+import csv
 import importlib.util
 import tempfile
 import unittest
@@ -13,26 +14,60 @@ SPEC.loader.exec_module(mod)
 
 
 class ShadowSelectionTests(unittest.TestCase):
-    def test_example_estimands(self):
+    def test_example_estimands_are_layer_specific(self):
         result = mod.analyze(
             ROOT / "examples" / "exposure_ledger.csv",
             ROOT / "examples" / "chapter2_windows.csv",
         )
         est = result["estimands"]
-        self.assertAlmostEqual(est["q_B_event_given_registered_baseline"], 0.5)
-        self.assertAlmostEqual(est["a_R_registered_baseline_given_event"], 2 / 3)
-        self.assertAlmostEqual(est["q_shadow_event_given_no_record_entry"], 0.5)
-        self.assertAlmostEqual(est["a_K_no_record_entry_given_event"], 2 / 3)
+        self.assertAlmostEqual(
+            est["q_acquisition_shadow_event_given_primary_unavailable"], 1.0
+        )
+        self.assertAlmostEqual(est["a_A_primary_unavailable_given_event"], 0.25)
+        self.assertAlmostEqual(
+            est["q_gate_unevaluable_event_given_gate_unevaluable"], 0.5
+        )
+        self.assertAlmostEqual(est["a_gate_unevaluable_given_event"], 0.25)
+        self.assertAlmostEqual(
+            est["q_B_event_given_registered_baseline_gate_evaluable"], 1.0
+        )
+        self.assertAlmostEqual(
+            est["a_R_registered_baseline_given_event_gate_evaluable"], 2 / 3
+        )
+        self.assertAlmostEqual(est["q_shadow_event_given_no_record_entry"], 0.75)
+        self.assertAlmostEqual(est["a_K_no_record_entry_given_event"], 0.75)
 
     def test_truth_window_must_exist_in_ledger(self):
-        truth = (ROOT / "examples" / "chapter2_windows.csv").read_text(encoding="utf-8")
-        truth = truth.replace("grid-v1,reference_timeline,ref-v1,true,A,S1,C1,2026-09-01,B1,w1,", "grid-v1,reference_timeline,ref-v1,true,A,S1,C1,2026-09-01,B1,missing,", 1)
-        tmp = tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False)
+        source = ROOT / "examples" / "chapter2_windows.csv"
+        with source.open(newline="", encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+            fields = list(rows[0].keys())
+        rows[0]["window_id"] = "missing"
+        tmp = tempfile.NamedTemporaryFile("w", newline="", suffix=".csv", delete=False)
         with tmp:
-            tmp.write(truth)
+            writer = csv.DictWriter(tmp, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(rows)
         path = Path(tmp.name)
         self.addCleanup(lambda: path.unlink(missing_ok=True))
         with self.assertRaisesRegex(mod.AnalysisError, "absent from exposure ledger"):
+            mod.analyze(ROOT / "examples" / "exposure_ledger.csv", path)
+
+    def test_gate_evaluability_must_match_ledger(self):
+        source = ROOT / "examples" / "chapter2_windows.csv"
+        with source.open(newline="", encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+            fields = list(rows[0].keys())
+        rows[0]["gate_evaluable"] = "false"
+        rows[0]["registered_deviation"] = ""
+        tmp = tempfile.NamedTemporaryFile("w", newline="", suffix=".csv", delete=False)
+        with tmp:
+            writer = csv.DictWriter(tmp, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(rows)
+        path = Path(tmp.name)
+        self.addCleanup(lambda: path.unlink(missing_ok=True))
+        with self.assertRaisesRegex(mod.AnalysisError, "gate_evaluable disagrees"):
             mod.analyze(ROOT / "examples" / "exposure_ledger.csv", path)
 
 
