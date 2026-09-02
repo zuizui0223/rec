@@ -49,6 +49,24 @@ A missing event-log row is not a biological baseline state. To study what did no
 
 If the event log itself defines the denominator, exposures that never triggered/entered are absent by construction and `P(event | no record)` is not empirically identified from that log alone.
 
+## Identifiability boundary
+
+REC distinguishes three levels that must not be conflated:
+
+1. an **event log** shows only entered rows and cannot identify the biological composition of rows that never existed;
+2. a **master exposure ledger** makes non-entry enumerable but still does not reveal biological truth inside the shadow set;
+3. **probability-sampled independent reference truth** can identify shadow composition over the audited exposure universe, while unresolved reference truth remains unresolved or bounded.
+
+The formal note is `IDENTIFIABILITY_BOUNDARY.md`.
+
+A deterministic witness is executable with:
+
+```bash
+python scripts/demonstrate_eventlog_nonidentifiability.py --pretty
+```
+
+It constructs multiple shadow-world completions with **the same observed event log** but different `q_shadow`, demonstrating why event-log-only shadow prevalence is not identified.
+
 ## Paper-2 chapter architecture
 
 ### Chapter 1 — post-entry decision coarsening
@@ -163,7 +181,7 @@ Required:
 - grouped development/held-out split;
 - one prespecified ecological estimand/contrast.
 
-Phase-0 work is tracked in issues #1 and #3.
+Phase-0 REC work is tracked in issue #3.
 
 ### External physical-sensor neighbour — Findlay CT-Detection
 
@@ -209,7 +227,9 @@ If only missed events are demonstrated, the result is a measurement-validation s
 ## Repository map
 
 - `REC_FRAMEWORK.md` — formal shadow-side architecture;
+- `REC_STATE_MODEL.md` — recorded, reference-observable shadow and reference-unresolved worlds;
 - `REC_POSITIONING_NOTE.md` — short TNOA/REC conceptual pairing;
+- `IDENTIFIABILITY_BOUNDARY.md` — what event logs, exposure ledgers and reference truth can/cannot identify;
 - `HYPOTHESIS_RECOVERY.md` — recovered hypotheses, falsifiers and prior-art status;
 - `CHAPTER2_THRESHOLD_CENSORING.md` — gate-censoring chapter;
 - `PREREGISTRATION_DRAFT.md` — confirmatory freeze plan;
@@ -217,7 +237,7 @@ If only missed events are demonstrated, the result is a measurement-validation s
 - `EXPOSURE_LEDGER_SCHEMA.md` — master exposure / record-entry contract;
 - `PRIOR_ART_BOUNDARY.md` — nearest-neighbour audit;
 - `SYSTEM_B_CANDIDATES.md` — external replication suitability;
-- `scripts/` and `tests/` — executable fail-closed validation.
+- `scripts/` and `tests/` — executable fail-closed validation and identifiability witnesses.
 
 ## Hard boundary with TNOA Paper 1
 
