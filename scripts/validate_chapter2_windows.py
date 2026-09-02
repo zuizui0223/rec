@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Validate the REC / Chapter-2 record-entry observation-window contract.
+"""Validate the REC / Chapter-2 exposure, gate and record-entry contract.
 
-This validator is intentionally fail-closed. It checks structural invariants that
-must hold before a confirmatory REC table is analyzed. It does not infer missing
-truth, reconstruct an unknown exposure denominator, repair contradictory rows,
-or calibrate a gate/entry policy.
+Fail closed: the validator checks structural invariants only. It does not infer
+missing truth, convert not-evaluable exposures to baseline, reconstruct an
+unknown denominator, repair contradictory rows, or calibrate a gate.
 """
 from __future__ import annotations
 
@@ -33,7 +32,9 @@ REQUIRED_COLUMNS = {
     "development_or_heldout",
     "primary_stream_available",
     "pregate_evidence_version",
+    "gate_evaluable",
     "registered_deviation",
+    "gate_not_evaluable_reason",
     "gate_type",
     "gate_version",
     "gate_configuration_id",
@@ -106,8 +107,8 @@ def require_text(row: dict[str, str], field: str, row_no: int) -> str:
 
 def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
     exposure_grid_id = require_text(row, "exposure_grid_id", row_no)
-    exposure_source = require_text(row, "exposure_source", row_no)
-    exposure_source_version = require_text(row, "exposure_source_version", row_no)
+    require_text(row, "exposure_source", row_no)
+    require_text(row, "exposure_source_version", row_no)
     exposure_independent = parse_bool(
         row["exposure_defined_independently_of_gate"],
         field="exposure_defined_independently_of_gate",
@@ -128,19 +129,41 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
     primary_available = parse_bool(
         row["primary_stream_available"], field="primary_stream_available", row_no=row_no
     )
+    require_text(row, "pregate_evidence_version", row_no)
+
+    gate_evaluable = parse_bool(row["gate_evaluable"], field="gate_evaluable", row_no=row_no)
     registered_deviation = parse_bool(
         row["registered_deviation"], field="registered_deviation", row_no=row_no
     )
     gate_inputs_complete = parse_bool(
         row["gate_inputs_complete"], field="gate_inputs_complete", row_no=row_no
     )
+    not_eval_reason = row["gate_not_evaluable_reason"].strip()
+
+    if gate_evaluable:
+        if not primary_available or not gate_inputs_complete:
+            raise ValidationError(
+                f"row {row_no}: evaluable gate requires available primary stream and complete gate inputs"
+            )
+        if not_eval_reason:
+            raise ValidationError(
+                f"row {row_no}: evaluable gate must not carry gate_not_evaluable_reason"
+            )
+    else:
+        if registered_deviation:
+            raise ValidationError(
+                f"row {row_no}: not-evaluable gate cannot register a deviation"
+            )
+        if not not_eval_reason:
+            raise ValidationError(
+                f"row {row_no}: not-evaluable gate requires gate_not_evaluable_reason"
+            )
 
     gate_type = row["gate_type"].strip().lower()
     if gate_type not in GATE_TYPES:
         raise ValidationError(f"row {row_no}: gate_type must be scalar or composite")
     require_text(row, "gate_version", row_no)
     require_text(row, "gate_configuration_id", row_no)
-    require_text(row, "pregate_evidence_version", row_no)
 
     threshold_text = row["gate_threshold"].strip()
     if gate_type == "scalar":
@@ -157,15 +180,10 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
             f"row {row_no}: composite gate must not invent a scalar gate_threshold"
         )
 
-    if registered_deviation and (not primary_available or not gate_inputs_complete):
-        raise ValidationError(
-            f"row {row_no}: registered deviation requires available primary stream and complete gate inputs"
-        )
-
     record_entry_present = parse_bool(
         row["record_entry_present"], field="record_entry_present", row_no=row_no
     )
-    entry_policy_version = require_text(row, "entry_policy_version", row_no)
+    require_text(row, "entry_policy_version", row_no)
     entry_policy_type = row["entry_policy_type"].strip().lower()
     if entry_policy_type not in ENTRY_POLICY_TYPES:
         raise ValidationError(
@@ -227,38 +245,39 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
             f"row {row_no}: unsampled truth cannot carry resolved target_truth"
         )
 
-    absorbed = truth_sampled and target_truth == "positive" and not registered_deviation
+    absorbed = (
+        truth_sampled
+        and target_truth == "positive"
+        and gate_evaluable
+        and not registered_deviation
+    )
+    unevaluable_event = truth_sampled and target_truth == "positive" and not gate_evaluable
     shadow_event = truth_sampled and target_truth == "positive" and not record_entry_present
 
-    if "threshold_absorbed_event" in row and row["threshold_absorbed_event"].strip():
-        supplied_absorbed = parse_bool(
-            row["threshold_absorbed_event"], field="threshold_absorbed_event", row_no=row_no
-        )
-        if supplied_absorbed != absorbed:
-            raise ValidationError(
-                f"row {row_no}: threshold_absorbed_event disagrees with truth/gate derivation"
-            )
-
-    if "shadow_event" in row and row["shadow_event"].strip():
-        supplied_shadow = parse_bool(row["shadow_event"], field="shadow_event", row_no=row_no)
-        if supplied_shadow != shadow_event:
-            raise ValidationError(
-                f"row {row_no}: shadow_event disagrees with truth/record-entry derivation"
-            )
+    derived_flags = {
+        "threshold_absorbed_event": absorbed,
+        "gate_unevaluable_event": unevaluable_event,
+        "shadow_event": shadow_event,
+    }
+    for field, expected in derived_flags.items():
+        if field in row and row[field].strip():
+            supplied = parse_bool(row[field], field=field, row_no=row_no)
+            if supplied != expected:
+                raise ValidationError(
+                    f"row {row_no}: {field} disagrees with truth/pipeline derivation"
+                )
 
     return {
         "exposure_grid_id": exposure_grid_id,
-        "exposure_source": exposure_source,
-        "exposure_source_version": exposure_source_version,
         "split": split,
         "exposure_seconds": exposure,
+        "gate_evaluable": gate_evaluable,
         "registered_deviation": registered_deviation,
         "record_entry_present": record_entry_present,
-        "entry_policy_version": entry_policy_version,
-        "entry_policy_type": entry_policy_type,
         "target_truth": target_truth,
         "truth_sampled": truth_sampled,
         "threshold_absorbed": absorbed,
+        "gate_unevaluable_event": unevaluable_event,
         "shadow_event": shadow_event,
         "truth_inclusion_probability": inclusion_probability,
         "truth_sampling_weight": sampling_weight,
@@ -280,7 +299,7 @@ def validate_csv(path: Path) -> dict[str, Any]:
         seen_windows: set[str] = set()
         seen_groups: dict[tuple[str, str, str], str] = {}
         records: list[dict[str, Any]] = []
-        registered_counts = Counter()
+        gate_counts = Counter()
         entry_counts = Counter()
         truth_counts = Counter()
         exposure_grids = Counter()
@@ -307,12 +326,20 @@ def validate_csv(path: Path) -> dict[str, Any]:
             seen_groups[group] = result["split"]
 
             exposure_grids[result["exposure_grid_id"]] += 1
-            registered_counts["deviation" if result["registered_deviation"] else "B"] += 1
+            if not result["gate_evaluable"]:
+                gate_counts["not_evaluable"] += 1
+            elif result["registered_deviation"]:
+                gate_counts["deviation"] += 1
+            else:
+                gate_counts["baseline"] += 1
             entry_counts["entered" if result["record_entry_present"] else "shadow"] += 1
+
             if result["truth_sampled"]:
                 truth_counts[result["target_truth"]] += 1
                 if result["threshold_absorbed"]:
                     truth_counts["threshold_absorbed"] += 1
+                if result["gate_unevaluable_event"]:
+                    truth_counts["gate_unevaluable_event"] += 1
                 if result["shadow_event"]:
                     truth_counts["shadow_event"] += 1
             records.append(result)
@@ -320,12 +347,23 @@ def validate_csv(path: Path) -> dict[str, Any]:
     if not records:
         raise ValidationError("CSV contains no data rows")
 
-    sampled_b = sum(
-        1 for r in records if r["truth_sampled"] and not r["registered_deviation"]
+    sampled_baseline = sum(
+        1
+        for r in records
+        if r["truth_sampled"] and r["gate_evaluable"] and not r["registered_deviation"]
     )
-    if sampled_b == 0:
+    if sampled_baseline == 0:
         raise ValidationError(
-            "REC Chapter 2 requires at least one truth-sampled logical registered-B window"
+            "REC requires at least one truth-sampled evaluable logical-baseline window"
+        )
+
+    not_evaluable_exists = any(not r["gate_evaluable"] for r in records)
+    sampled_not_evaluable = sum(
+        1 for r in records if r["truth_sampled"] and not r["gate_evaluable"]
+    )
+    if not_evaluable_exists and sampled_not_evaluable == 0:
+        raise ValidationError(
+            "REC contains not-evaluable exposures but none are truth-sampled"
         )
 
     nonentered_exists = any(not r["record_entry_present"] for r in records)
@@ -338,11 +376,19 @@ def validate_csv(path: Path) -> dict[str, Any]:
         )
 
     sampled_positive = truth_counts["positive"]
-    sampled_b_resolved = sum(
+    sampled_baseline_resolved = sum(
         1
         for r in records
         if r["truth_sampled"]
+        and r["gate_evaluable"]
         and not r["registered_deviation"]
+        and r["target_truth"] in {"positive", "negative"}
+    )
+    sampled_unevaluable_resolved = sum(
+        1
+        for r in records
+        if r["truth_sampled"]
+        and not r["gate_evaluable"]
         and r["target_truth"] in {"positive", "negative"}
     )
     sampled_shadow_resolved = sum(
@@ -353,41 +399,44 @@ def validate_csv(path: Path) -> dict[str, Any]:
         and r["target_truth"] in {"positive", "negative"}
     )
 
-    q_b_unweighted = (
-        truth_counts["threshold_absorbed"] / sampled_b_resolved
-        if sampled_b_resolved
+    threshold_absorbed = truth_counts["threshold_absorbed"]
+    unevaluable_events = truth_counts["gate_unevaluable_event"]
+    shadow_events = truth_counts["shadow_event"]
+
+    q_b = threshold_absorbed / sampled_baseline_resolved if sampled_baseline_resolved else None
+    q_u = unevaluable_events / sampled_unevaluable_resolved if sampled_unevaluable_resolved else None
+    a_b = threshold_absorbed / sampled_positive if sampled_positive else None
+    a_u = unevaluable_events / sampled_positive if sampled_positive else None
+    a_pre = (
+        (threshold_absorbed + unevaluable_events) / sampled_positive
+        if sampled_positive
         else None
     )
-    absorption_unweighted = (
-        truth_counts["threshold_absorbed"] / sampled_positive if sampled_positive else None
-    )
-    q_shadow_unweighted = (
-        truth_counts["shadow_event"] / sampled_shadow_resolved
-        if sampled_shadow_resolved
-        else None
-    )
-    nonentry_unweighted = (
-        truth_counts["shadow_event"] / sampled_positive if sampled_positive else None
-    )
+    q_shadow = shadow_events / sampled_shadow_resolved if sampled_shadow_resolved else None
+    a_k = shadow_events / sampled_positive if sampled_positive else None
 
     return {
-        "schema": "rec-record-entry-window-validation-v2",
+        "schema": "rec-record-entry-window-validation-v3",
         "path": str(path),
         "row_count": len(records),
         "exposure_grid_counts": dict(exposure_grids),
-        "registered_state_counts": dict(registered_counts),
+        "gate_state_counts": dict(gate_counts),
         "record_entry_counts": dict(entry_counts),
         "sampled_truth_counts": dict(truth_counts),
-        "truth_sampled_registered_B": sampled_b,
+        "truth_sampled_evaluable_baseline_windows": sampled_baseline,
+        "truth_sampled_not_evaluable_windows": sampled_not_evaluable,
         "truth_sampled_shadow_windows": sampled_shadow,
-        "unweighted_descriptive_q_B": q_b_unweighted,
-        "unweighted_descriptive_event_absorption": absorption_unweighted,
-        "unweighted_descriptive_q_shadow": q_shadow_unweighted,
-        "unweighted_descriptive_event_nonentry": nonentry_unweighted,
+        "unweighted_descriptive_q_B": q_b,
+        "unweighted_descriptive_q_gate_unevaluable": q_u,
+        "unweighted_descriptive_event_baseline_absorption": a_b,
+        "unweighted_descriptive_event_gate_unevaluable": a_u,
+        "unweighted_descriptive_event_not_registered": a_pre,
+        "unweighted_descriptive_q_shadow": q_shadow,
+        "unweighted_descriptive_event_nonentry": a_k,
         "note": (
             "Descriptive unweighted values are diagnostics only. Confirmatory population "
             "estimates must respect the frozen truth-sampling design, master exposure universe, "
-            "entry policy and independent-unit structure."
+            "gate evaluability, entry policy and independent-unit structure."
         ),
     }
 
