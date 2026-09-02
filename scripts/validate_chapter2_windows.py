@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the Chapter-2 threshold-censoring observation-window contract.
+"""Validate the REC / Chapter-2 record-entry observation-window contract.
 
 This validator is intentionally fail-closed. It checks structural invariants that
-must hold before a confirmatory Chapter-2 table is analyzed. It does not infer
-missing truth, repair contradictory rows, or calibrate a gate.
+must hold before a confirmatory REC table is analyzed. It does not infer missing
+truth, reconstruct an unknown exposure denominator, repair contradictory rows,
+or calibrate a gate/entry policy.
 """
 from __future__ import annotations
 
@@ -16,6 +17,10 @@ from pathlib import Path
 from typing import Any
 
 REQUIRED_COLUMNS = {
+    "exposure_grid_id",
+    "exposure_source",
+    "exposure_source_version",
+    "exposure_defined_independently_of_gate",
     "system_id",
     "site_id",
     "camera_or_sensor_id",
@@ -34,6 +39,10 @@ REQUIRED_COLUMNS = {
     "gate_configuration_id",
     "gate_threshold",
     "gate_inputs_complete",
+    "record_entry_present",
+    "entry_policy_version",
+    "entry_policy_type",
+    "entry_policy_inputs_complete",
     "target_truth",
     "target_truth_source",
     "target_event_definition_version",
@@ -43,6 +52,7 @@ REQUIRED_COLUMNS = {
     "truth_inclusion_probability",
     "truth_sampling_weight",
     "annotator_blinded_to_gate",
+    "annotator_blinded_to_entry",
     "annotator_blinded_to_scores",
 }
 
@@ -51,6 +61,7 @@ BOOL_FALSE = {"0", "false", "f", "no", "n"}
 SPLITS = {"development", "heldout"}
 TRUTH = {"positive", "negative", "unresolved"}
 GATE_TYPES = {"scalar", "composite"}
+ENTRY_POLICY_TYPES = {"trigger_only", "fixed_schedule", "hybrid", "postcapture_filter", "other"}
 
 
 class ValidationError(ValueError):
@@ -86,7 +97,27 @@ def parse_probability(value: str, *, field: str, row_no: int) -> float:
     return x
 
 
+def require_text(row: dict[str, str], field: str, row_no: int) -> str:
+    text = row[field].strip()
+    if not text:
+        raise ValidationError(f"row {row_no}: {field} is required")
+    return text
+
+
 def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
+    exposure_grid_id = require_text(row, "exposure_grid_id", row_no)
+    exposure_source = require_text(row, "exposure_source", row_no)
+    exposure_source_version = require_text(row, "exposure_source_version", row_no)
+    exposure_independent = parse_bool(
+        row["exposure_defined_independently_of_gate"],
+        field="exposure_defined_independently_of_gate",
+        row_no=row_no,
+    )
+    if not exposure_independent:
+        raise ValidationError(
+            f"row {row_no}: REC requires an exposure universe defined independently of the tested gate"
+        )
+
     split = row["development_or_heldout"].strip().lower()
     if split not in SPLITS:
         raise ValidationError(
@@ -107,10 +138,9 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
     gate_type = row["gate_type"].strip().lower()
     if gate_type not in GATE_TYPES:
         raise ValidationError(f"row {row_no}: gate_type must be scalar or composite")
-    if not row["gate_version"].strip() or not row["gate_configuration_id"].strip():
-        raise ValidationError(f"row {row_no}: gate version/configuration must be present")
-    if not row["pregate_evidence_version"].strip():
-        raise ValidationError(f"row {row_no}: pregate_evidence_version is required")
+    require_text(row, "gate_version", row_no)
+    require_text(row, "gate_configuration_id", row_no)
+    require_text(row, "pregate_evidence_version", row_no)
 
     threshold_text = row["gate_threshold"].strip()
     if gate_type == "scalar":
@@ -132,17 +162,37 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
             f"row {row_no}: registered deviation requires available primary stream and complete gate inputs"
         )
 
+    record_entry_present = parse_bool(
+        row["record_entry_present"], field="record_entry_present", row_no=row_no
+    )
+    entry_policy_version = require_text(row, "entry_policy_version", row_no)
+    entry_policy_type = row["entry_policy_type"].strip().lower()
+    if entry_policy_type not in ENTRY_POLICY_TYPES:
+        raise ValidationError(
+            f"row {row_no}: entry_policy_type must be one of {sorted(ENTRY_POLICY_TYPES)}"
+        )
+    entry_policy_inputs_complete = parse_bool(
+        row["entry_policy_inputs_complete"],
+        field="entry_policy_inputs_complete",
+        row_no=row_no,
+    )
+    if record_entry_present and not entry_policy_inputs_complete:
+        raise ValidationError(
+            f"row {row_no}: present record entry requires complete entry-policy inputs"
+        )
+
     target_truth = row["target_truth"].strip().lower()
     if target_truth not in TRUTH:
         raise ValidationError(f"row {row_no}: invalid target_truth {target_truth!r}")
-    if not row["target_truth_source"].strip():
-        raise ValidationError(f"row {row_no}: target_truth_source is required")
-    if not row["target_event_definition_version"].strip():
-        raise ValidationError(f"row {row_no}: target_event_definition_version is required")
+    require_text(row, "target_truth_source", row_no)
+    require_text(row, "target_event_definition_version", row_no)
 
     truth_sampled = parse_bool(row["truth_sampled"], field="truth_sampled", row_no=row_no)
     blinded_gate = parse_bool(
         row["annotator_blinded_to_gate"], field="annotator_blinded_to_gate", row_no=row_no
+    )
+    blinded_entry = parse_bool(
+        row["annotator_blinded_to_entry"], field="annotator_blinded_to_entry", row_no=row_no
     )
     blinded_scores = parse_bool(
         row["annotator_blinded_to_scores"], field="annotator_blinded_to_scores", row_no=row_no
@@ -172,13 +222,13 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
             raise ValidationError(
                 f"row {row_no}: truth_sampling_weight must equal 1/inclusion_probability"
             )
-    else:
-        if target_truth != "unresolved":
-            raise ValidationError(
-                f"row {row_no}: unsampled truth cannot carry resolved target_truth"
-            )
+    elif target_truth != "unresolved":
+        raise ValidationError(
+            f"row {row_no}: unsampled truth cannot carry resolved target_truth"
+        )
 
     absorbed = truth_sampled and target_truth == "positive" and not registered_deviation
+    shadow_event = truth_sampled and target_truth == "positive" and not record_entry_present
 
     if "threshold_absorbed_event" in row and row["threshold_absorbed_event"].strip():
         supplied_absorbed = parse_bool(
@@ -189,16 +239,31 @@ def validate_row(row: dict[str, str], row_no: int) -> dict[str, Any]:
                 f"row {row_no}: threshold_absorbed_event disagrees with truth/gate derivation"
             )
 
+    if "shadow_event" in row and row["shadow_event"].strip():
+        supplied_shadow = parse_bool(row["shadow_event"], field="shadow_event", row_no=row_no)
+        if supplied_shadow != shadow_event:
+            raise ValidationError(
+                f"row {row_no}: shadow_event disagrees with truth/record-entry derivation"
+            )
+
     return {
+        "exposure_grid_id": exposure_grid_id,
+        "exposure_source": exposure_source,
+        "exposure_source_version": exposure_source_version,
         "split": split,
         "exposure_seconds": exposure,
         "registered_deviation": registered_deviation,
+        "record_entry_present": record_entry_present,
+        "entry_policy_version": entry_policy_version,
+        "entry_policy_type": entry_policy_type,
         "target_truth": target_truth,
         "truth_sampled": truth_sampled,
         "threshold_absorbed": absorbed,
+        "shadow_event": shadow_event,
         "truth_inclusion_probability": inclusion_probability,
         "truth_sampling_weight": sampling_weight,
         "annotator_blinded_to_gate": blinded_gate,
+        "annotator_blinded_to_entry": blinded_entry,
         "annotator_blinded_to_scores": blinded_scores,
     }
 
@@ -216,7 +281,9 @@ def validate_csv(path: Path) -> dict[str, Any]:
         seen_groups: dict[tuple[str, str, str], str] = {}
         records: list[dict[str, Any]] = []
         registered_counts = Counter()
+        entry_counts = Counter()
         truth_counts = Counter()
+        exposure_grids = Counter()
 
         for row_no, row in enumerate(reader, start=2):
             window_id = row["window_id"].strip()
@@ -239,11 +306,15 @@ def validate_csv(path: Path) -> dict[str, Any]:
                 )
             seen_groups[group] = result["split"]
 
+            exposure_grids[result["exposure_grid_id"]] += 1
             registered_counts["deviation" if result["registered_deviation"] else "B"] += 1
+            entry_counts["entered" if result["record_entry_present"] else "shadow"] += 1
             if result["truth_sampled"]:
                 truth_counts[result["target_truth"]] += 1
                 if result["threshold_absorbed"]:
                     truth_counts["threshold_absorbed"] += 1
+                if result["shadow_event"]:
+                    truth_counts["shadow_event"] += 1
             records.append(result)
 
     if not records:
@@ -254,7 +325,16 @@ def validate_csv(path: Path) -> dict[str, Any]:
     )
     if sampled_b == 0:
         raise ValidationError(
-            "Chapter 2 requires at least one truth-sampled registered-B window"
+            "REC Chapter 2 requires at least one truth-sampled logical registered-B window"
+        )
+
+    nonentered_exists = any(not r["record_entry_present"] for r in records)
+    sampled_shadow = sum(
+        1 for r in records if r["truth_sampled"] and not r["record_entry_present"]
+    )
+    if nonentered_exists and sampled_shadow == 0:
+        raise ValidationError(
+            "REC contains non-entered exposures but no truth-sampled record-entry shadow window"
         )
 
     sampled_positive = truth_counts["positive"]
@@ -265,6 +345,14 @@ def validate_csv(path: Path) -> dict[str, Any]:
         and not r["registered_deviation"]
         and r["target_truth"] in {"positive", "negative"}
     )
+    sampled_shadow_resolved = sum(
+        1
+        for r in records
+        if r["truth_sampled"]
+        and not r["record_entry_present"]
+        and r["target_truth"] in {"positive", "negative"}
+    )
+
     q_b_unweighted = (
         truth_counts["threshold_absorbed"] / sampled_b_resolved
         if sampled_b_resolved
@@ -273,19 +361,33 @@ def validate_csv(path: Path) -> dict[str, Any]:
     absorption_unweighted = (
         truth_counts["threshold_absorbed"] / sampled_positive if sampled_positive else None
     )
+    q_shadow_unweighted = (
+        truth_counts["shadow_event"] / sampled_shadow_resolved
+        if sampled_shadow_resolved
+        else None
+    )
+    nonentry_unweighted = (
+        truth_counts["shadow_event"] / sampled_positive if sampled_positive else None
+    )
 
     return {
-        "schema": "rec-chapter2-window-validation-v1",
+        "schema": "rec-record-entry-window-validation-v2",
         "path": str(path),
         "row_count": len(records),
+        "exposure_grid_counts": dict(exposure_grids),
         "registered_state_counts": dict(registered_counts),
+        "record_entry_counts": dict(entry_counts),
         "sampled_truth_counts": dict(truth_counts),
         "truth_sampled_registered_B": sampled_b,
+        "truth_sampled_shadow_windows": sampled_shadow,
         "unweighted_descriptive_q_B": q_b_unweighted,
         "unweighted_descriptive_event_absorption": absorption_unweighted,
+        "unweighted_descriptive_q_shadow": q_shadow_unweighted,
+        "unweighted_descriptive_event_nonentry": nonentry_unweighted,
         "note": (
             "Descriptive unweighted values are diagnostics only. Confirmatory population "
-            "estimates must respect the frozen truth-sampling design and independent-unit structure."
+            "estimates must respect the frozen truth-sampling design, master exposure universe, "
+            "entry policy and independent-unit structure."
         ),
     }
 
@@ -299,7 +401,7 @@ def main() -> None:
     try:
         summary = validate_csv(args.csv_path)
     except ValidationError as exc:
-        raise SystemExit(f"Chapter-2 schema validation failed: {exc}") from exc
+        raise SystemExit(f"REC schema validation failed: {exc}") from exc
 
     text = json.dumps(summary, indent=2, sort_keys=True) + "\n"
     if args.summary:
