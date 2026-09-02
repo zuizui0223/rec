@@ -1,6 +1,10 @@
 exposure_grid_id,window_id,system_id,site_id,camera_or_sensor_id,recording_day,recording_block_id,window_start,window_end,exposure_seconds,exposure_source,exposure_source_version,exposure_expected,primary_stream_expected,primary_stream_available,acquisition_status,gate_evaluable,record_entry_present,record_entry_policy_version,record_entry_id,record_entry_timestamp,record_entry_reason
-grid-v2,w1,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:00,2026-09-01T09:00:10,10,continuous_reference_stream,ref-v2,true,true,true,available,true,false,entry-v2,,,gate_rejected
-grid-v2,w2,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:10,2026-09-01T09:00:20,10,continuous_reference_stream,ref-v2,true,true,false,hardware_failure,false,false,entry-v2,,,primary_stream_failure
-grid-v2,w3,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:20,2026-09-01T09:00:30,10,continuous_reference_stream,ref-v2,true,false,false,planned_not_acquired,false,false,entry-v2,,,not_applicable
-grid-v2,w4,A,S2,C2,2026-09-02,B2,2026-09-02T10:00:00,2026-09-02T10:00:10,10,continuous_reference_stream,ref-v2,true,true,true,available,false,false,entry-v2,,,gate_not_evaluable
-grid-v2,w5,A,S2,C2,2026-09-02,B2,2026-09-02T10:00:10,2026-09-02T10:00:20,10,continuous_reference_stream,ref-v2,true,true,true,available,true,true,entry-v2,evt-005,2026-09-02T10:00:11,entered
+grid-v3,w1,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:00,2026-09-01T09:00:10,10,continuous_reference_stream,ref-v3,true,true,true,available,true,false,entry-v3,,,gate_rejected
+grid-v3,w2,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:10,2026-09-01T09:00:20,10,continuous_reference_stream,ref-v3,true,true,false,hardware_failure,false,false,entry-v3,,,primary_stream_failure
+grid-v3,w3,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:20,2026-09-01T09:00:30,10,continuous_reference_stream,ref-v3,true,false,false,planned_not_acquired,false,false,entry-v3,,,not_applicable
+grid-v3,w4,A,S2,C2,2026-09-02,B2,2026-09-02T10:00:00,2026-09-02T10:00:10,10,continuous_reference_stream,ref-v3,true,true,true,available,false,false,entry-v3,,,gate_not_evaluable
+grid-v3,w5,A,S2,C2,2026-09-02,B2,2026-09-02T10:00:10,2026-09-02T10:00:20,10,continuous_reference_stream,ref-v3,true,true,true,available,true,true,entry-v3,evt-005,2026-09-02T10:00:11,entered
+grid-v3,w6,A,S3,C3,2026-09-03,B3,2026-09-03T08:00:00,2026-09-03T08:00:10,10,continuous_reference_stream,ref-v3,true,true,true,available,true,false,entry-v3,,,gate_rejected
+grid-v3,w7,A,S3,C3,2026-09-03,B3,2026-09-03T08:00:10,2026-09-03T08:00:20,10,continuous_reference_stream,ref-v3,true,true,true,available,true,false,entry-v3,,,gate_rejected
+grid-v3,w8,A,S4,C4,2026-09-04,B4,2026-09-04T07:00:00,2026-09-04T07:00:10,10,continuous_reference_stream,ref-v3,true,true,true,available,true,true,entry-v3,evt-008,2026-09-04T07:00:01,entered
+grid-v3,w9,A,S4,C4,2026-09-04,B4,2026-09-04T07:00:10,2026-09-04T07:00:20,10,continuous_reference_stream,ref-v3,true,true,true,available,false,false,entry-v3,,,gate_not_evaluable
