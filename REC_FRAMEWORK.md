@@ -1,4 +1,4 @@
-# REC framework — the shadow side of TNOA
+# REC framework — the record-entry shadow side of TNOA
 
 Status: **working conceptual framework; not a novelty claim; empirical validation belongs to Paper 2**.
 
@@ -6,294 +6,256 @@ Status: **working conceptual framework; not a novelty claim; empirical validatio
 
 **REC = Record-Entry Censoring.**
 
-The name is a project-level working label for the process by which ecological events or exposure windows fail to enter the scientific record before downstream semantic adjudication begins.
+REC studies how ecological exposure opportunities and events are selected into the scientific record **before** TNOA-style semantic adjudication begins.
 
-REC is deliberately paired with TNOA:
+- **TNOA asks:** once an observation has entered the record, which process distinctions should survive downstream representation?
+- **REC asks:** which exposure opportunities/events did not enter that record, through which gate/entry mechanism, and does that selection alter ecological inference?
 
-- **TNOA asks:** once an observation has entered the record, which process distinctions must be preserved before downstream ecological inference?
-- **REC asks:** which ecological exposures or events never entered that record, why did they fail to enter, and what ecological information is therefore absent from the recorded world?
+REC does not claim priority for imperfect detection, false negatives, camera trigger failure or missing-data theory.
 
-The manuscript-facing novelty must not be phrased as “the first framework for imperfect detection.” Imperfect detection, false negatives, trigger failures and occupancy models are established literatures. REC’s narrower target is an **auditable record-entry contract** linking the exposure universe, pre-gate evidence, entry/retention rules, independent truth and downstream ecological distortion.
+## 2. What “shadow world” means
 
-## 2. Paired-world view
+The shadow world is not a mystical or fundamentally unobservable state space.
 
-TNOA and REC examine opposite sides of the same observation interface.
+REC distinguishes:
 
-```text
-                         ecological world
-                               |
-                               v
-                    master exposure universe Ω
-                               |
-                               v
-                    primary-stream evidence S
-                               |
-                         registered gate G
-                        /                 \
-                       /                   \
-               R = 0 /                     \ R = 1
-                     v                       v
-          logical registered baseline      registered deviation
-                 B_reg                         |
-                   |                           v
-                   |                        T / N / U
-                   |                           |
-                   |                           v
-                   |                    target / not-target
-                   |
-                   +---- REC shadow side
+1. **latent biological world** — never exhaustively observable;
+2. **master exposure universe `Omega`** — observation opportunities defined independently of the tested gate;
+3. **reference-observable shadow world** — sampled exposures where independent reference truth can resolve events even when the tested system did not enter a record;
+4. **primary recorded world** — exposures selected into the tested record;
+5. **semantic world** — entered observations represented as B/T/N/U and later coarsened outputs.
 
-TNOA starts after a usable observation record exists.
-REC reconstructs and audits the exposure set that was censored before or at record entry.
-```
+Formal empirical target:
 
-The key conceptual asymmetry is that the recorded world is directly enumerable, whereas the shadow world often is not.
+> **unseen by the tested record-entry system, but recoverable under an independent exposure/reference design.**
 
-## 3. Foundational principle: no record is not yet a state
+## 3. No record is not yet a state
 
-A missing event-log entry is not automatically a biological baseline observation.
+A missing event-log row does not itself mean biological baseline.
 
-To say that “nothing was recorded” scientifically, one first needs a denominator: a set of exposure windows during which an observation could have entered the record.
+To interpret “nothing was recorded,” REC first requires an exposure denominator:
 
-Define a **master exposure universe**
+`Omega = {i = 1, ..., N}`.
 
-`Ω = {i = 1, ..., N}`
+`Omega` must be generated independently of the tested event-entry gate, for example by:
 
-whose windows are created independently of the tested event-entry gate. Examples include:
+- a fixed temporal clock;
+- continuous reference audio/video partitioned into frozen windows;
+- continuous primary acquisition with later event logging;
+- another externally justified schedule.
 
-- a fixed temporal sampling clock;
-- a continuous reference video divided into frozen windows;
-- an independent acquisition stream with complete exposure accounting;
-- another externally justified schedule that exists whether or not the tested gate fires.
+Without `Omega`, the non-entered set is not empirically enumerable and event-log-only data cannot identify `P(event | no record)` without additional assumptions.
 
-Without `Ω`, the non-entered set is not observable as a population and quantities such as `P(event | no record)` are not identified from the event log alone.
-
-REC therefore adopts the rule:
+Foundational rule:
 
 > **Define exposure before defining non-detection.**
 
-This is the upstream analogue of TNOA’s rule that low target support is not biological absence.
-
 ## 4. Core variables
 
-For exposure window `i ∈ Ω`, define:
+For `i in Omega`:
 
-- `E_i`: independent biological event truth (`1`, `0`, or unresolved);
-- `S_i`: retained pre-gate primary-stream evidence;
-- `R_i`: registered-deviation indicator produced by frozen gate `G`;
-- `K_i`: archive/record-entry indicator — whether the tested operational record actually contains an entry for the window;
-- `D_i`: process-resolved decision when the logical observation is represented (`B/T/N/U`, with `B` the no-registered-deviation state);
-- `Y_i`: any later coarsened record supplied downstream, such as `target/not-target`;
+- `E_i`: independent event truth (`1`, `0`, unresolved);
+- `S_i`: retained pre-gate evidence;
+- `R_i`: registered-deviation indicator from frozen gate `G`;
+- `K_i`: operational record-entry/archive indicator;
+- `D_i`: process-resolved decision if represented (`B/T/N/U`);
+- `Y_i`: later coarsened output such as target/not-target;
 - `X_i`: ecological and measurement covariates defined independently of the tested gate where possible.
 
-These variables separate two upstream mechanisms that are often conflated.
+## 5. Separate gate censoring R from record-entry censoring K
 
-### 4.1 Gate censoring
+### Gate censoring
 
-`R_i = 0` means the frozen measurement rule did not register a deviation.
+`R_i=0` means the frozen gate did not register a deviation.
 
-A threshold-absorbed event is
+A **threshold-absorbed event** is:
 
-`E_i = 1, R_i = 0`.
+`E_i=1, R_i=0`.
 
-The logical baseline contamination is
+Logical registered-baseline contamination:
 
 `q_B = P(E=1 | R=0, truth resolved)`.
 
-### 4.2 Archive/entry censoring
+Event absorption:
 
-`K_i = 0` means the operational event record contains no stored entry for exposure window `i`.
+`a_R = P(R=0 | E=1, truth resolved)`.
 
-In a purely event-triggered system, `K` may closely follow `R`. In a fixed-schedule system, `K` may equal one for every exposure even when `R=0`. REC keeps these mechanisms separate rather than assuming they are identical.
+### Record-entry censoring
 
-Define the **record-entry shadow set**
+`K_i=0` means the operational event/archive record contains no entry for exposure `i`.
 
-`Ω_shadow = {i ∈ Ω : K_i = 0}`.
+Define:
 
-Its event contamination is
+`Omega_shadow = {i in Omega : K_i=0}`.
+
+Shadow contamination:
 
 `q_shadow = P(E=1 | K=0, truth resolved)`.
 
-`q_shadow` is not estimable from the event log alone unless non-entered exposure windows can be reconstructed from an independent exposure universe.
+Event non-entry:
 
-## 5. The complete information-loss chain
+`a_K = P(K=0 | E=1, truth resolved)`.
 
-REC and TNOA together describe a staged observation pipeline:
+`R` and `K` may differ. A fixed-schedule system can store `R=0` baseline windows (`K=1`), while an event-triggered system may produce `R=0, K=0`. An `R=1, K=0` row signals an archive/storage-stage loss rather than gate failure.
+
+## 6. Full information-loss chain
 
 ```text
 latent biological process
         |
         v
-exposure universe Ω
+master exposure universe Omega
         |
         v
 pre-gate evidence S
         |
         v
-registration gate R              <- REC Chapter 2
+registration gate R                <- REC gate layer
         |
         v
-archive / event-log entry K      <- REC record-entry layer
+archive / event-log entry K        <- REC entry layer
         |
         v
-process-resolved B/T/N/U         <- TNOA / Paper-2 Chapter 1 interface
+B / T / N / U                      <- TNOA semantic layer
         |
         v
-binary target/not-target         <- decision coarsening
+target / not-target                <- later coarsening
         |
         v
 downstream ecological inference
 ```
 
-Each arrow can remove information for a different reason. Later modeling cannot reconstruct distinctions that were never entered into the data unless extra measurements or assumptions supply them.
+Each stage can remove information for a different reason. Later modeling cannot recover a distinction that never entered the record unless independent measurements or explicit assumptions supply it.
 
-## 6. Why environmental bias can appear
+## 7. Why apparent ecology can be manufactured
 
 Let
 
-- `π(x) = P(E=1 | X=x)` be the true ecological event probability;
-- `s(x) = P(R=1 | E=1, X=x)` be gate sensitivity to true events;
-- `f(x) = P(R=1 | E=0, X=x)` be false registration probability.
+- `pi(x)=P(E=1 | X=x)` be biological event probability;
+- `s(x)=P(R=1 | E=1, X=x)` be sensitivity to true events;
+- `f(x)=P(R=1 | E=0, X=x)` be false registration probability.
 
-Then the observed registered-deviation rate satisfies
+Then
 
-`P(R=1 | X=x) = s(x) π(x) + f(x) [1 - π(x)]`.
+`P(R=1 | X=x) = s(x) pi(x) + f(x) [1-pi(x)]`.
 
-Therefore a gradient in the recorded event rate can arise from:
+A gradient in recorded events can therefore come from ecology `pi(x)`, measurement `s(x)`, false registration `f(x)`, or combinations.
 
-1. a real ecological gradient `π(x)`;
-2. a measurement gradient `s(x)`;
-3. a false-registration gradient `f(x)`;
-4. combinations of all three.
+Minimal causal picture:
 
-This identity is not a new statistical discovery. Its role in REC is operational: every proposed ecological contrast should be checked for a plausible path through the record-entry mechanism.
+```text
+Ecological condition X ------> latent event E ------> reference truth
+        |                           |
+        +--> observability O ------+--> evidence S --> R --> K --> record
+```
 
-The dangerous case is
+The core REC consequence hypothesis is not merely “events are missed,” but:
 
-`X -> observability/evidence -> R/K`
+> **condition-dependent entry selection can be mistaken for ecology if the measurement path is not represented.**
 
-when the scientific analysis interprets the resulting record as if only
+This general possibility is established in imperfect-detection/observation-process literature; REC must measure it in its own frozen record-entry chain.
 
-`X -> E`
+## 8. Empirical claim ladder
 
-were operating.
+REC earns claims in order:
 
-## 7. REC’s main empirical ladder
+1. **denominator** — `Omega` exists independently of the tested entry rule;
+2. **shadow existence** — reference-positive events are measured in `R=0`/`K=0` exposures;
+3. **shadow structure** — event absorption/non-entry varies across predeclared conditions;
+4. **ecological consequence** — the selection changes a frozen ecological estimand/ranking/contrast relative to reference truth;
+5. **recoverability/redesign** — a frozen exposure-aware correction or acquisition design reduces that discrepancy;
+6. **two-stage decomposition** — where identifiable, separate upstream REC loss from downstream TNOA coarsening;
+7. **cross-system generality** — replicate a constrained version in another sensor/system.
 
-REC should earn claims in the following order.
-
-### Level 1 — shadow existence
-
-Show that independently verified biological events occur in `R=0` or `K=0` exposure windows.
-
-Key quantities:
-
-- `q_B = P(E=1 | R=0)`;
-- event absorption `a = P(R=0 | E=1)`;
-- `q_shadow = P(E=1 | K=0)` when archive non-entry exists.
-
-A null result is valid.
-
-### Level 2 — shadow structure
-
-Show whether absorption/non-entry varies across predeclared measurement or ecological conditions.
-
-Examples: observability, target scale/distance, occlusion, illumination, masking, hardware state.
-
-### Level 3 — ecological consequence
-
-Show whether differential record entry changes a prespecified ecological estimand, site ranking or effect estimate relative to independent truth.
-
-### Level 4 — correction or redesign
-
-Only after Levels 1–3 may REC test whether a frozen correction, uncertainty-aware model or acquisition redesign reduces that distortion.
-
-### Level 5 — cross-system generality
-
-Replicate the direction/condition map in an independent sensor or biological system. Failure to replicate constrains the scope and remains publishable.
-
-## 8. The master exposure grid is non-negotiable
-
-A confirmatory REC analysis must identify every target exposure window independently of the tested gate.
-
-For each row, retain:
-
-- `exposure_grid_id`;
-- exposure-window start/end and duration;
-- `exposure_source` and version;
-- `registered_deviation` and gate version;
-- `record_entry_present` and entry-policy version;
-- pre-gate evidence version;
-- truth-sampling inclusion probability when only a subset is reference-annotated.
-
-If a system physically stores only event-triggered clips, an independent reference stream or fixed low-cost sampling channel is needed to reconstruct non-entered windows. Otherwise the shadow world is not empirically enumerable.
+Failure at one level constrains the next claim rather than licensing redesign on held-out truth.
 
 ## 9. REC versus TNOA
 
 | Question | REC | TNOA |
 | --- | --- | --- |
-| Where is information lost? | before/at record entry | after an observation is represented |
-| Primary missing object | non-entered exposure/event | process distinction within entered record |
-| Core audit variable | gate/entry indicator `R`, `K` | B/T/N/U and evidence semantics |
-| Main anti-error rule | no record ≠ no event | low T / not-T ≠ biological absence |
-| Required external support | master exposure grid + independent truth | calibrated evidence semantics; independent absence only for A− |
-| Typical failure | event absorbed into baseline/no log entry | nuisance/U/B collapsed into binary negative |
-| Main downstream risk | selection/detection gradient masquerades as ecology | coarsened observation record widens or biases ecological inference |
+| Information-loss location | before/at record entry | after record representation |
+| Missing object | exposure/event absent from record set | process distinction inside entered record |
+| Core variables | `Omega`, `R`, `K`, entry provenance | evidence semantics, B/T/N/U |
+| Anti-error rule | no record != no event | low T / not-T != biological absence |
+| External requirement | gate-independent denominator + reference truth | calibrated evidence semantics; independent A- if absence claimed |
+| Typical failure | selection/detection gradient masquerades as ecology | B/N/U collapsed into binary negative |
 
-REC is therefore the **shadow-side companion** to TNOA, not a replacement for it.
+Together:
+
+`world -> exposure Omega -> REC selection -> TNOA semantics -> downstream ecology`.
 
 ## 10. Prior-art boundary
 
-REC must explicitly surrender the following priority claims:
+REC explicitly surrenders priority for:
 
-- nondetection is not absence;
-- imperfect detection in occupancy or capture–recapture models;
-- false-negative camera-trap detection;
-- decomposition of camera-trap detection into encounter/trigger/registration/quality processes;
-- paired or double-observer approaches;
-- continuous-score or classification-aware occupancy modeling;
-- generic censoring/truncation/missing-data theory.
+- nondetection != absence;
+- occupancy/capture-recapture imperfect detection;
+- condition-dependent detection;
+- camera-trap pass/trigger/registration/quality decomposition;
+- independent CCTV/double-observer missed-detection studies;
+- automated acoustic FP/FN ecological inference;
+- continuous-score/classification-aware occupancy;
+- censoring/truncation/MNAR/preferential-sampling theory.
 
-The defensible REC contribution, if field evidence supports it, is narrower:
+See `PRIOR_ART_BOUNDARY.md`.
 
-> **an auditable record-entry measurement contract that reconstructs the exposure universe, preserves pre-gate evidence and entry provenance, deliberately samples the non-entered set against independent truth, and traces condition-dependent record entry into downstream ecological conclusions before later TNOA-style semantic coarsening.**
+The strongest currently defensible architectural target is:
 
-This contribution is empirical and architectural. It is not established by the framework document alone.
+> **an auditable record-entry contract connecting a gate-independent exposure denominator, retained pre-gate evidence, versioned registration/archive rules, probability-sampled non-entry truth and downstream ecological consequence before later semantic coarsening.**
 
-## 11. Terminology discipline
+This is a hypothesis about useful architecture until field evidence supports it.
 
-Preferred manuscript terms:
+## 11. External-system logic
 
-- **master exposure universe/grid** — the denominator of windows independent of the tested gate;
-- **registered deviation** — a window passing the frozen gate;
-- **logical registered baseline** — exposure window with `R=0`;
-- **record entry** — operational archival/log inclusion `K=1`;
-- **record-entry shadow set** — exposure windows with `K=0`;
-- **threshold-absorbed event** — independent event truth with `R=0`;
-- **record-entry censoring** — the full pre-semantic selection mechanism under study.
+Do not force one dataset to validate every layer.
 
-“Shadow world” is useful project shorthand but should remain a pedagogical metaphor rather than the formal statistical term.
+- **Findlay CT-Detection:** closest public physical trigger/registration neighbour; supports event-conditioned missed-trigger analyses but not a full temporal `Omega`.
+- **BirdVox-full-night:** current leading public algorithmic REC candidate because continuous audio defines an enumerable time denominator and expert event annotations exist.
+- **WABAD:** later broad acoustic generalization candidate after sampling provenance review.
+- **Snapshot Serengeti:** useful primarily for post-entry semantic/TNOA work; event-triggered imagery alone cannot enumerate animals that never triggered the camera.
 
-## 12. Hard guardrails
+See `SYSTEM_B_CANDIDATES.md`.
+
+## 12. Executable implementation
+
+REC now has two linked fail-closed contracts.
+
+### Master exposure / entry ledger
+
+- `EXPOSURE_LEDGER_SCHEMA.md`
+- `scripts/validate_exposure_ledger.py`
+- `examples/exposure_ledger.csv`
+- `tests/test_exposure_ledger.py`
+
+This validates the denominator `Omega` and operational entry indicator `K`.
+
+### Chapter-2 gate / truth audit
+
+- `CHAPTER2_THRESHOLD_CENSORING.md`
+- `TRUTH_AND_WINDOW_SCHEMA.md`
+- `scripts/validate_chapter2_windows.py`
+- `examples/chapter2_windows.csv`
+- `tests/test_chapter2_schema.py`
+
+This validates gate `R`, truth sampling and absorbed/shadow-event derivations.
+
+CI validates both contracts on each PR.
+
+## 13. Hypothesis traceability
+
+`HYPOTHESIS_RECOVERY.md` records how REC hypotheses descend from TNOA principles, which parts are already known from prior literature, falsifiers, and which empirical combinations remain credible novelty candidates.
+
+## 14. Hard guardrails
 
 REC must not:
 
 - infer `E=0` because `R=0` or `K=0`;
-- treat the event log as the exposure universe;
-- estimate `q_shadow` without a recoverable denominator/sampling design;
-- define truth using the same gate being audited;
-- retune the gate on held-out truth and then describe the result as confirmatory;
-- call standard imperfect-detection ideas novel;
+- treat an event log as the exposure universe;
+- estimate `q_shadow` without recoverable denominator/sampling design;
+- define truth with the same gate being audited;
+- preferentially inspect suspicious non-entry windows without accounting for inclusion probabilities;
+- retune the gate on held-out truth and call the result confirmatory;
+- call standard imperfect-detection findings novel;
 - claim a universal optimal gate;
-- claim ecological distortion unless a downstream estimand is compared against independent truth;
-- claim that every event-driven system needs the same B/T/N/U implementation.
-
-## 13. Current implementation map
-
-- `CHAPTER2_THRESHOLD_CENSORING.md` — gate-censoring chapter and confirmatory estimands;
-- `TRUTH_AND_WINDOW_SCHEMA.md` — row-level data contract;
-- `scripts/validate_chapter2_windows.py` — fail-closed structural validator;
-- `PREREGISTRATION_DRAFT.md` — confirmatory freeze rules;
-- issue #3 — Chapter-2 Phase-0 pilot.
-
-The next implementation increment is to add master-exposure and archive-entry provenance to the schema/validator so Chapter 2 can distinguish a logical `B` from a physically absent event-log row.
+- claim ecological distortion without comparison to an independently supported ecological estimand;
+- imply that a reference annotation on the same sensor stream establishes events the physical sensor never captured.
