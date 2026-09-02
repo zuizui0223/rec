@@ -1,0 +1,5 @@
+exposure_grid_id,window_id,system_id,site_id,camera_or_sensor_id,recording_day,recording_block_id,window_start,window_end,exposure_seconds,exposure_source,exposure_source_version,exposure_expected,primary_stream_expected,record_entry_present,record_entry_policy_version,record_entry_id,record_entry_timestamp,record_entry_reason
+grid-v1,w1,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:00,2026-09-01T09:00:10,10,continuous_reference_stream,ref-v1,true,true,false,entry-v1,,,gate_rejected
+grid-v1,w2,A,S1,C1,2026-09-01,B1,2026-09-01T09:00:10,2026-09-01T09:00:20,10,continuous_reference_stream,ref-v1,true,true,false,entry-v1,,,gate_rejected
+grid-v1,w3,A,S2,C2,2026-09-02,B2,2026-09-02T10:00:00,2026-09-02T10:00:10,10,continuous_reference_stream,ref-v1,true,true,true,entry-v1,evt-003,2026-09-02T10:00:01,entered
+grid-v1,w4,A,S2,C2,2026-09-02,B2,2026-09-02T10:00:10,2026-09-02T10:00:20,10,continuous_reference_stream,ref-v1,true,true,true,entry-v1,evt-004,2026-09-02T10:00:10,entered
