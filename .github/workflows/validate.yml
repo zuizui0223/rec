@@ -1,0 +1,23 @@
+name: validate-rec
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Chapter 2 schema tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate Chapter 2 example window table
+        run: |
+          python scripts/validate_chapter2_windows.py \
+            examples/chapter2_windows.csv \
+            --summary /tmp/chapter2_summary.json
+          cat /tmp/chapter2_summary.json
