@@ -1,40 +1,60 @@
-# REC positioning note — why the “shadow world” matters
-
-This note is deliberately short. It records the conceptual distinction that motivated the REC branch.
+# REC positioning note — TNOA's auditable shadow world
 
 ## TNOA front side
 
-TNOA begins with an observation record and asks how much of its process structure survives downstream representation.
+TNOA begins once an observation has entered the scientific record and asks which process distinctions survive downstream representation.
 
-Its canonical problem is:
+Canonical problem:
 
 `B/T/N/U -> target/not-target`.
 
 ## REC shadow side
 
-REC begins before that record exists.
+REC begins to the left of that record.
 
-Its canonical problem is:
+Canonical problem:
 
-`exposure -> evidence -> gate/entry -> record or no record`.
+`exposure Omega -> acquisition -> gate -> entry -> record / no record`.
 
-The scientific object is not merely a false negative. It is the **selection mechanism that determines which exposures become rows available to downstream inference**.
+The object is not simply a false negative. It is the **selection mechanism that determines which exposure opportunities become rows available to downstream inference**.
 
-This is why REC requires a master exposure universe `Ω` independent of the tested event log.
+## “Unobservable world” is not the empirical claim
 
-Without `Ω`:
+REC distinguishes:
+
+1. **recorded world** — entered observations available to TNOA;
+2. **reference-observable shadow world** — excluded/unavailable to the tested primary record but recoverable with an independent exposure/reference design;
+3. **reference-unresolved world** — not resolved well enough by either system for the target biological claim.
+
+REC can empirically study layer 2. Layer 3 remains unresolved unless additional assumptions or measurements are introduced.
+
+Therefore the safe shorthand is:
+
+> **the world unseen by the tested record, not the unknowable biological world.**
+
+## Why Omega comes first
+
+Without a master exposure universe `Omega` defined independently of the tested event log:
 
 - a non-entry is not enumerable;
-- “nothing happened” and “nothing was recorded” are inseparable;
-- downstream models inherit an unknown selection mechanism;
-- the event log can silently become both numerator and denominator.
+- “nothing happened” and “nothing was recorded” remain inseparable;
+- event logs can silently become both numerator and denominator;
+- acquisition failure, gate rejection and archive loss are easily collapsed into one nondetection label.
 
-REC therefore treats the event log as a selected sample from an exposure universe, while TNOA treats an entered observation as a semantic object that can later be coarsened.
-
-Together:
+REC therefore starts from exposure opportunities, then separately records acquisition `A`, gate evaluability/result `R`, and record entry `K`.
 
 ```text
-world -> exposure Ω -> REC selection -> TNOA semantics -> downstream ecology
+world
+  -> exposure Omega
+  -> REC acquisition/gate/entry selection
+  -> entered record
+  -> TNOA semantics
+  -> downstream ecology
 ```
 
-The project shorthand “TNOA’s shadow world” refers to the exposures/events excluded to the left of TNOA, not to a new biological state.
+Mirror rules:
+
+- **REC:** no record != no event.
+- **TNOA:** not-target / low support != biological absence.
+
+See `REC_STATE_MODEL.md` for the operational state model and `REC_FRAMEWORK.md` for the full research program.
