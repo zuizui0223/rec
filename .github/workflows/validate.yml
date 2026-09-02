@@ -35,3 +35,10 @@ jobs:
             examples/chapter2_windows.csv \
             --output /tmp/shadow_selection.json
           cat /tmp/shadow_selection.json
+      - name: Partition recorded and reference-resolved worlds
+        run: |
+          python scripts/analyze_world_partition.py \
+            examples/exposure_ledger.csv \
+            examples/chapter2_windows.csv \
+            --output /tmp/world_partition.json
+          cat /tmp/world_partition.json
