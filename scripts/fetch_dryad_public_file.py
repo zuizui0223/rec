@@ -6,6 +6,7 @@ import argparse
 import html
 import json
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -114,9 +115,7 @@ def _download_href(row: dict[str, Any]) -> str | None:
     return None
 
 
-def _landing_download(doi: str, filename: str) -> str | None:
-    landing = "https://datadryad.org/dataset/" + urllib.parse.quote("doi:" + doi, safe="")
-    text = _get_text(landing)
+def _landing_download_from_text(text: str, filename: str) -> str | None:
     anchors = re.findall(
         r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>',
         text,
@@ -129,14 +128,20 @@ def _landing_download(doi: str, filename: str) -> str | None:
             return urllib.parse.urljoin("https://datadryad.org", html.unescape(href))
     pos = text.casefold().find(filename.casefold())
     if pos >= 0:
-        window = text[max(0, pos - 3000) : pos + 3000]
-        match = re.search(r"(/downloads/file_stream/\d+)", window)
-        if match:
-            return urllib.parse.urljoin("https://datadryad.org", match.group(1))
+        window = text[max(0, pos - 5000) : pos + 5000]
+        candidates = re.findall(r"(/downloads/file_stream/\d+)", window)
+        if len(set(candidates)) == 1:
+            return urllib.parse.urljoin("https://datadryad.org", candidates[0])
     return None
 
 
-def resolve(doi: str, filename: str) -> dict[str, Any]:
+def _landing_download(doi: str, filename: str) -> tuple[str | None, str]:
+    landing = "https://datadryad.org/dataset/" + urllib.parse.quote("doi:" + doi, safe="")
+    return _landing_download_from_text(_get_text(landing), filename), landing
+
+
+def _api_enrichment(doi: str, filename: str) -> dict[str, Any]:
+    """Best-effort metadata enrichment; landing-page resolution remains authoritative."""
     encoded = urllib.parse.quote("doi:" + doi, safe="")
     versions_url = f"https://datadryad.org/api/v2/datasets/{encoded}/versions"
     versions = _get_json(versions_url)
@@ -144,25 +149,46 @@ def resolve(doi: str, filename: str) -> dict[str, Any]:
     files_url = f"https://datadryad.org/api/v2/versions/{version_id}/files?per_page=100"
     files = _get_json(files_url)
     row = select_named_file(files, filename)
-    href = _download_href(row)
-    if href is None:
-        href = _landing_download(doi, filename)
-    file_id = _integer(row.get("id"))
-    if href is None and file_id is not None:
-        href = f"https://datadryad.org/downloads/file_stream/{file_id}"
-    if href is None:
-        raise DryadFetchError(f"could not resolve public download URL for {filename}")
     return {
-        "doi": doi,
-        "filename": filename,
         "version_id": version_id,
-        "file_id": file_id if file_id is not None else row.get("id"),
+        "file_id": _integer(row.get("id")) or row.get("id"),
         "size": row.get("size"),
         "mimetype": row.get("mimeType", row.get("mimetype")),
-        "download_url": href,
         "versions_url": versions_url,
         "files_url": files_url,
+        "api_download_url": _download_href(row),
     }
+
+
+def resolve(doi: str, filename: str) -> dict[str, Any]:
+    href, landing = _landing_download(doi, filename)
+    if href is None:
+        raise DryadFetchError(
+            f"public Dryad landing page does not expose a unique file-stream link for {filename}"
+        )
+
+    info: dict[str, Any] = {
+        "doi": doi,
+        "filename": filename,
+        "landing_url": landing,
+        "download_url": href,
+        "resolution_method": "public-landing-file-stream",
+        "version_id": None,
+        "file_id": None,
+        "size": None,
+        "mimetype": None,
+    }
+    match = re.search(r"/downloads/file_stream/(\d+)", href)
+    if match:
+        info["file_stream_id"] = int(match.group(1))
+
+    # API metadata is useful provenance but has changed response shapes over time.
+    # Failure to enrich must not block a public file whose landing-page link is unambiguous.
+    try:
+        info.update(_api_enrichment(doi, filename))
+    except Exception as exc:  # provenance-only path; download link already uniquely resolved
+        info["api_enrichment"] = f"unavailable:{type(exc).__name__}"
+    return info
 
 
 def download(info: dict[str, Any], output: Path) -> None:
@@ -196,7 +222,7 @@ def main() -> None:
         download(info, args.output)
     except (DryadFetchError, OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
         raise SystemExit(f"Dryad fetch failed: {exc}") from exc
-    public = {k: v for k, v in info.items() if k != "download_url"}
+    public = {k: v for k, v in info.items() if k not in {"download_url", "api_download_url"}}
     public["downloaded_bytes"] = args.output.stat().st_size
     if args.provenance:
         args.provenance.parent.mkdir(parents=True, exist_ok=True)
