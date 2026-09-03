@@ -1,0 +1,146 @@
+{
+  "by_unit": {
+    "02": {
+      "2": {
+        "a_R": 0.9983879634605051,
+        "contrast_retained_oracle": 0.0009680542110358179,
+        "early_auc": 0.46751404708136646,
+        "early_score_median": 0.686770467886,
+        "entered_true_positive_windows": 6,
+        "false_registration_rate_given_truth_negative": 0.0012085441259134346,
+        "late_auc": 0.34775008053447753,
+        "late_score_median": -0.624173045143,
+        "oracle_downstream_true_entry_late_minus_early": 0.00010177599104371279,
+        "q_B": 0.09466792347081751,
+        "raw_recorded_late_minus_early": 0.0002544399776092819,
+        "registered_prevalence": 0.0012467558902854816,
+        "registered_windows": 49,
+        "true_event_entry_rate": 0.0016120365394948952,
+        "truth_late_minus_early": 0.10513459874815531,
+        "truth_positive_windows": 3722,
+        "truth_prevalence": 0.09470255966617475,
+        "window_count": 39302
+      },
+      "4": {
+        "a_R": 1.0,
+        "contrast_retained_oracle": 0.0,
+        "early_auc": 0.46751404708136646,
+        "early_score_median": 0.686770467886,
+        "entered_true_positive_windows": 0,
+        "false_registration_rate_given_truth_negative": 0.0,
+        "late_auc": 0.34775008053447753,
+        "late_score_median": -0.624173045143,
+        "oracle_downstream_true_entry_late_minus_early": 0.0,
+        "q_B": 0.09470255966617475,
+        "raw_recorded_late_minus_early": 0.0,
+        "registered_prevalence": 0.0,
+        "registered_windows": 0,
+        "true_event_entry_rate": 0.0,
+        "truth_late_minus_early": 0.10513459874815531,
+        "truth_positive_windows": 3722,
+        "truth_prevalence": 0.09470255966617475,
+        "window_count": 39302
+      }
+    },
+    "05": {
+      "2": {
+        "a_R": 0.9992730797189242,
+        "contrast_retained_oracle": -0.0009742843814872765,
+        "early_auc": 0.3770730341668311,
+        "early_score_median": 0.677162980845,
+        "entered_true_positive_windows": 3,
+        "false_registration_rate_given_truth_negative": 0.005676979846721544,
+        "late_auc": 0.3505745212323064,
+        "late_score_median": -0.452373352417,
+        "oracle_downstream_true_entry_late_minus_early": -0.00015244677066924132,
+        "q_B": 0.10532768044133421,
+        "raw_recorded_late_minus_early": -0.01031556481528533,
+        "registered_prevalence": 0.00515791345885103,
+        "registered_windows": 203,
+        "true_event_entry_rate": 0.000726920281075842,
+        "truth_late_minus_early": 0.15647050652349206,
+        "truth_positive_windows": 4127,
+        "truth_prevalence": 0.10486063470284829,
+        "window_count": 39357
+      },
+      "4": {
+        "a_R": 1.0,
+        "contrast_retained_oracle": 0.0,
+        "early_auc": 0.3770730341668311,
+        "early_score_median": 0.677162980845,
+        "entered_true_positive_windows": 0,
+        "false_registration_rate_given_truth_negative": 0.0,
+        "late_auc": 0.3505745212323064,
+        "late_score_median": -0.452373352417,
+        "oracle_downstream_true_entry_late_minus_early": 0.0,
+        "q_B": 0.10486063470284829,
+        "raw_recorded_late_minus_early": 0.0,
+        "registered_prevalence": 0.0,
+        "registered_windows": 0,
+        "true_event_entry_rate": 0.0,
+        "truth_late_minus_early": 0.15647050652349206,
+        "truth_positive_windows": 4127,
+        "truth_prevalence": 0.10486063470284829,
+        "window_count": 39357
+      }
+    }
+  },
+  "claim_boundary": {
+    "H1": "independently replicated on both protected units",
+    "H2": "score/operating-condition structure present but a_R is ceiling-saturated; do not claim a calibrated condition-effect model",
+    "H3": "independently replicated on both protected units; ecological temporal contrast is almost completely erased by upstream omission",
+    "H4": "frozen gate change alters the scientific record; z=4 collapses both protected units to zero entries",
+    "not_claimed": [
+      "microphone-level missed calls",
+      "species abundance",
+      "a generally useful bird-call detector",
+      "publication-level generality beyond this acoustic system"
+    ]
+  },
+  "protected_pooled": {
+    "2": {
+      "a_R": 0.9988533571155561,
+      "contrast_retained_oracle": -0.00019433745191019052,
+      "entered_true_positive_windows": 9,
+      "oracle_downstream_true_entry_late_minus_early": -2.542329758148573e-05,
+      "q_B": 0.09999107222569413,
+      "raw_recorded_late_minus_early": -0.00503430748750798,
+      "registered_prevalence": 0.003203702055708819,
+      "registered_windows": 252,
+      "sensors": ["02", "05"],
+      "threshold": 2,
+      "truth_late_minus_early": 0.13082037112040884,
+      "truth_positive_windows": 7849,
+      "truth_prevalence": 0.09978514855261318,
+      "window_count": 78659
+    },
+    "4": {
+      "a_R": 1.0,
+      "contrast_retained_oracle": 0.0,
+      "entered_true_positive_windows": 0,
+      "oracle_downstream_true_entry_late_minus_early": 0.0,
+      "q_B": 0.09978514855261318,
+      "raw_recorded_late_minus_early": 0.0,
+      "registered_prevalence": 0.0,
+      "registered_windows": 0,
+      "sensors": ["02", "05"],
+      "threshold": 4,
+      "truth_late_minus_early": 0.13082037112040884,
+      "truth_positive_windows": 7849,
+      "truth_prevalence": 0.09978514855261318,
+      "window_count": 78659
+    }
+  },
+  "schema": "rec-birdvox-protected-02-05-evidence-v1",
+  "source": {
+    "artifact_id": 9886803009,
+    "artifact_sha256": "78ab1a57df19bc79eb545388a19002f0c11528d8da33deac6d433061d13774b7",
+    "dataset": "BirdVox-full-night v3.0",
+    "pilot_excluded": "10",
+    "protected_units": ["02", "05"],
+    "thresholds": [2, 4],
+    "workflow_head_sha": "a6ba0cf320147df7c7ff37685404ff84ef1a9a1c",
+    "workflow_run_id": 33736172747,
+    "zenodo_record": "1205569"
+  }
+}
