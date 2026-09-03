@@ -107,6 +107,21 @@ def _spearman(x: list[float], y: list[float]) -> float | None:
     return _pearson(_rank(x), _rank(y))
 
 
+def _condition_summary(d: dict[str, float]) -> dict[str, float | int | None]:
+    return {
+        "window_count": int(d["windows"]),
+        "truth_positive_windows": int(d["truth_positive"]),
+        "truth_positive_gate_evaluable_windows": int(d["truth_positive_evaluable"]),
+        "gate_unevaluable_positive_windows": int(d["gate_unevaluable_positive"]),
+        "gate_baseline_positive_windows": int(d["gate_baseline_positive"]),
+        "no_entry_positive_windows": int(d["no_entry_positive"]),
+        "event_absorption_a_R": _ratio(
+            d["gate_baseline_positive"], d["truth_positive_evaluable"]
+        ),
+        "event_nonentry_a_K": _ratio(d["no_entry_positive"], d["truth_positive"]),
+    }
+
+
 def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
     counts = defaultdict(float)
     by_sensor: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
@@ -114,6 +129,8 @@ def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
 
     sensor_end: dict[str, float] = {}
     for row in rows:
+        if row["split"].strip().lower() != "heldout":
+            continue
         sensor = row["sensor_id"].strip().zfill(2)
         sensor_end[sensor] = max(
             sensor_end.get(sensor, 0.0),
@@ -128,20 +145,31 @@ def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
         evaluable = _bool(row["gate_evaluable"], "gate_evaluable")
         score = _float(row["max_score"], "max_score") if evaluable else None
         registered = evaluable and score is not None and score >= threshold
+        gate_baseline = evaluable and not registered
+        no_entry = not registered
 
         counts["windows"] += 1
         counts["truth_positive"] += int(truth)
         counts["gate_evaluable"] += int(evaluable)
+        counts["truth_positive_evaluable"] += int(truth and evaluable)
+        counts["gate_unevaluable"] += int(not evaluable)
+        counts["gate_unevaluable_positive"] += int(truth and not evaluable)
         counts["registered"] += int(registered)
-        counts["shadow"] += int(not registered)
-        counts["shadow_positive"] += int(truth and not registered)
         counts["registered_positive"] += int(truth and registered)
+        counts["gate_baseline"] += int(gate_baseline)
+        counts["gate_baseline_positive"] += int(truth and gate_baseline)
+        counts["no_entry"] += int(no_entry)
+        counts["no_entry_positive"] += int(truth and no_entry)
 
         d = by_sensor[sensor]
         d["windows"] += 1
         d["truth_positive"] += int(truth)
+        d["gate_evaluable"] += int(evaluable)
+        d["truth_positive_evaluable"] += int(truth and evaluable)
+        d["gate_unevaluable_positive"] += int(truth and not evaluable)
         d["registered"] += int(registered)
-        d["shadow_positive"] += int(truth and not registered)
+        d["gate_baseline_positive"] += int(truth and gate_baseline)
+        d["no_entry_positive"] += int(truth and no_entry)
 
         midpoint = sensor_end[sensor] / 2.0
         start = _float(row["window_start_seconds"], "window_start_seconds")
@@ -149,7 +177,12 @@ def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
         h = by_half[half]
         h["windows"] += 1
         h["truth_positive"] += int(truth)
+        h["gate_evaluable"] += int(evaluable)
+        h["truth_positive_evaluable"] += int(truth and evaluable)
+        h["gate_unevaluable_positive"] += int(truth and not evaluable)
         h["registered"] += int(registered)
+        h["gate_baseline_positive"] += int(truth and gate_baseline)
+        h["no_entry_positive"] += int(truth and no_entry)
 
     if counts["windows"] == 0:
         raise BirdVoxAnalysisError("no heldout windows")
@@ -163,12 +196,10 @@ def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
         d = by_sensor[sensor]
         truth_rate = d["truth_positive"] / d["windows"]
         recorded_rate = d["registered"] / d["windows"]
-        miss_rate = _ratio(d["shadow_positive"], d["truth_positive"])
         sensor_metrics[sensor] = {
-            "window_count": int(d["windows"]),
+            **_condition_summary(d),
             "truth_event_window_prevalence": truth_rate,
             "recorded_window_prevalence": recorded_rate,
-            "event_absorption_a_R": miss_rate,
         }
         truth_rates.append(truth_rate)
         recorded_rates.append(recorded_rate)
@@ -190,35 +221,65 @@ def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
         for v in sensor_metrics.values()
         if v["event_absorption_a_R"] is not None
     ]
+    nonentry_values = [
+        v["event_nonentry_a_K"]
+        for v in sensor_metrics.values()
+        if v["event_nonentry_a_K"] is not None
+    ]
 
     return {
         "threshold": threshold,
         "heldout": {
             "window_count": int(counts["windows"]),
             "truth_positive_windows": int(counts["truth_positive"]),
+            "truth_positive_gate_evaluable_windows": int(
+                counts["truth_positive_evaluable"]
+            ),
             "gate_evaluable_windows": int(counts["gate_evaluable"]),
+            "gate_unevaluable_windows": int(counts["gate_unevaluable"]),
             "registered_windows": int(counts["registered"]),
-            "shadow_windows": int(counts["shadow"]),
+            "registered_baseline_windows": int(counts["gate_baseline"]),
+            "no_entry_windows": int(counts["no_entry"]),
         },
         "REC_H1_shadow_existence": {
-            "shadow_positive_windows": int(counts["shadow_positive"]),
+            "no_entry_positive_windows": int(counts["no_entry_positive"]),
             "q_shadow_event_given_no_record": _ratio(
-                counts["shadow_positive"], counts["shadow"]
+                counts["no_entry_positive"], counts["no_entry"]
+            ),
+            "a_K_event_not_entered": _ratio(
+                counts["no_entry_positive"], counts["truth_positive"]
+            ),
+            "gate_baseline_positive_windows": int(counts["gate_baseline_positive"]),
+            "q_B_event_given_registered_baseline": _ratio(
+                counts["gate_baseline_positive"], counts["gate_baseline"]
             ),
             "a_R_event_absorbed_by_gate": _ratio(
-                counts["shadow_positive"], counts["truth_positive"]
+                counts["gate_baseline_positive"], counts["truth_positive_evaluable"]
             ),
-            "supported": counts["shadow_positive"] > 0,
+            "gate_unevaluable_positive_windows": int(
+                counts["gate_unevaluable_positive"]
+            ),
+            "supported_no_entry": counts["no_entry_positive"] > 0,
+            "supported_gate_absorption": counts["gate_baseline_positive"] > 0,
         },
         "REC_H2_structured_selection": {
             "by_sensor": sensor_metrics,
+            "by_night_half": {
+                half: _condition_summary(by_half[half]) for half in ("early", "late")
+            },
             "sensor_event_absorption_range": (
                 max(absorption_values) - min(absorption_values)
                 if absorption_values
                 else None
             ),
+            "sensor_event_nonentry_range": (
+                max(nonentry_values) - min(nonentry_values) if nonentry_values else None
+            ),
             "interpretation": (
-                "Descriptive held-out condition map; grouped uncertainty belongs in the confirmatory extension."
+                "Descriptive held-out condition map by sensor and time-of-night half. "
+                "Gate absorption a_R conditions on gate-evaluable true events; no-entry a_K also includes "
+                "gate-unevaluable true events because the frozen entry policy creates no record for them. "
+                "Grouped uncertainty belongs in the confirmatory extension."
             ),
         },
         "REC_H3_ecological_distortion": {
@@ -233,6 +294,8 @@ def _summary(rows: list[dict[str, str]], threshold: float) -> dict[str, Any]:
             ),
             "interpretation": (
                 "The ecological endpoint is one-second flight-call event-window prevalence. "
+                "Recorded prevalence uses K=1 only when the gate is evaluable and passes; "
+                "gate-unevaluable windows therefore contribute to K=0 but not to R=0. "
                 "This is an algorithmic record-entry consequence, not species abundance."
             ),
         },
@@ -253,8 +316,11 @@ def analyze(rows: list[dict[str, str]], thresholds: list[float]) -> dict[str, An
             {
                 "threshold_low": left["threshold"],
                 "threshold_high": right["threshold"],
-                "delta_event_absorption": (
+                "delta_event_absorption_a_R": (
                     r["a_R_event_absorbed_by_gate"] - l["a_R_event_absorbed_by_gate"]
+                ),
+                "delta_event_nonentry_a_K": (
+                    r["a_K_event_not_entered"] - l["a_K_event_not_entered"]
                 ),
                 "delta_shadow_contamination": (
                     None
@@ -270,11 +336,13 @@ def analyze(rows: list[dict[str, str]], thresholds: list[float]) -> dict[str, An
             }
         )
     return {
-        "schema": "rec-birdvox-exposure-grid-analysis-v1",
+        "schema": "rec-birdvox-exposure-grid-analysis-v2",
         "analysis_scope": "heldout sensors only",
         "record_entry_semantics": (
-            "For this external algorithmic replication K is set equal to the frozen gate result R. "
-            "It audits algorithmic gate censoring after audio acquisition; it does not estimate microphone-level misses "
+            "R is defined only when the frozen gate is evaluable. K=1 requires an evaluable gate that passes; "
+            "otherwise K=0 under this external replication entry policy. Therefore gate-unevaluable windows "
+            "contribute to record non-entry a_K but are never recoded as R=0 gate absorption a_R. "
+            "This audits algorithmic entry after audio acquisition and does not estimate microphone-level misses "
             "or a separate archive-loss stage."
         ),
         "threshold_results": summaries,
