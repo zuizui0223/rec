@@ -58,25 +58,50 @@ def _integer(value: Any) -> int | None:
     return None
 
 
+def _strings(obj: Any) -> list[str]:
+    out: list[str] = []
+    if isinstance(obj, str):
+        out.append(obj)
+    elif isinstance(obj, dict):
+        for value in obj.values():
+            out.extend(_strings(value))
+    elif isinstance(obj, list):
+        for value in obj:
+            out.extend(_strings(value))
+    return out
+
+
+def _entity_id(row: dict[str, Any], entity: str) -> int | None:
+    direct = _integer(row.get("id"))
+    if direct is not None:
+        return direct
+    pattern = re.compile(rf"/{re.escape(entity)}/(\d+)(?:[/?#]|$)")
+    for value in _strings(row.get("_links", row)):
+        match = pattern.search(value)
+        if match:
+            return int(match.group(1))
+    return None
+
+
 def select_latest_version(payload: dict[str, Any]) -> int:
-    candidates = [r for r in _embedded_records(payload) if _integer(r.get("id")) is not None]
+    candidates = [r for r in _embedded_records(payload) if _entity_id(r, "versions") is not None]
     if not candidates:
         candidates = [
             v
             for v in payload.values()
-            if isinstance(v, dict) and _integer(v.get("id")) is not None
+            if isinstance(v, dict) and _entity_id(v, "versions") is not None
         ]
     if not candidates:
-        raise DryadFetchError("Dryad versions response contains no numeric version id")
+        raise DryadFetchError("Dryad versions response contains no resolvable version id")
 
     def key(row: dict[str, Any]) -> tuple:
         return (
             str(row.get("versionNumber", "")),
             str(row.get("lastModificationDate", row.get("publicationDate", ""))),
-            _integer(row.get("id")) or -1,
+            _entity_id(row, "versions") or -1,
         )
 
-    selected = _integer(sorted(candidates, key=key)[-1].get("id"))
+    selected = _entity_id(sorted(candidates, key=key)[-1], "versions")
     assert selected is not None
     return selected
 
@@ -140,8 +165,7 @@ def _landing_download(doi: str, filename: str) -> tuple[str | None, str]:
     return _landing_download_from_text(_get_text(landing), filename), landing
 
 
-def _api_enrichment(doi: str, filename: str) -> dict[str, Any]:
-    """Best-effort metadata enrichment; landing-page resolution remains authoritative."""
+def _api_resolve(doi: str, filename: str) -> dict[str, Any]:
     encoded = urllib.parse.quote("doi:" + doi, safe="")
     versions_url = f"https://datadryad.org/api/v2/datasets/{encoded}/versions"
     versions = _get_json(versions_url)
@@ -149,51 +173,65 @@ def _api_enrichment(doi: str, filename: str) -> dict[str, Any]:
     files_url = f"https://datadryad.org/api/v2/versions/{version_id}/files?per_page=100"
     files = _get_json(files_url)
     row = select_named_file(files, filename)
+    file_id = _entity_id(row, "files")
+    href = _download_href(row)
+    # Anonymous API users may list metadata but not download through the API. The public
+    # landing site serves released files by file_stream id, which is the same internal file id.
+    if file_id is not None:
+        href = f"https://datadryad.org/downloads/file_stream/{file_id}"
+    if href is None:
+        raise DryadFetchError(f"file metadata for {filename} contains no resolvable file id")
     return {
+        "doi": doi,
+        "filename": filename,
+        "download_url": href,
+        "resolution_method": "public-api-metadata-to-file-stream",
         "version_id": version_id,
-        "file_id": _integer(row.get("id")) or row.get("id"),
+        "file_id": file_id,
         "size": row.get("size"),
         "mimetype": row.get("mimeType", row.get("mimetype")),
         "versions_url": versions_url,
         "files_url": files_url,
-        "api_download_url": _download_href(row),
     }
 
 
 def resolve(doi: str, filename: str) -> dict[str, Any]:
-    href, landing = _landing_download(doi, filename)
-    if href is None:
-        raise DryadFetchError(
-            f"public Dryad landing page does not expose a unique file-stream link for {filename}"
-        )
-
-    info: dict[str, Any] = {
-        "doi": doi,
-        "filename": filename,
-        "landing_url": landing,
-        "download_url": href,
-        "resolution_method": "public-landing-file-stream",
-        "version_id": None,
-        "file_id": None,
-        "size": None,
-        "mimetype": None,
-    }
-    match = re.search(r"/downloads/file_stream/(\d+)", href)
-    if match:
-        info["file_stream_id"] = int(match.group(1))
-
-    # API metadata is useful provenance but has changed response shapes over time.
-    # Failure to enrich must not block a public file whose landing-page link is unambiguous.
+    # Prefer anonymous API metadata because it is stable and does not require the web UI.
     try:
-        info.update(_api_enrichment(doi, filename))
-    except Exception as exc:  # provenance-only path; download link already uniquely resolved
-        info["api_enrichment"] = f"unavailable:{type(exc).__name__}"
-    return info
+        return _api_resolve(doi, filename)
+    except Exception as api_exc:
+        # Public landing-page resolution is a fallback for API schema changes.
+        try:
+            href, landing = _landing_download(doi, filename)
+        except Exception as landing_exc:
+            raise DryadFetchError(
+                f"API resolution failed ({type(api_exc).__name__}); landing resolution failed ({type(landing_exc).__name__})"
+            ) from landing_exc
+        if href is None:
+            raise DryadFetchError(
+                f"API resolution failed and public landing page does not expose a unique file-stream link for {filename}"
+            ) from api_exc
+        match = re.search(r"/downloads/file_stream/(\d+)", href)
+        return {
+            "doi": doi,
+            "filename": filename,
+            "landing_url": landing,
+            "download_url": href,
+            "resolution_method": "public-landing-file-stream",
+            "version_id": None,
+            "file_id": int(match.group(1)) if match else None,
+            "size": None,
+            "mimetype": None,
+        }
 
 
 def download(info: dict[str, Any], output: Path) -> None:
     req = urllib.request.Request(
-        str(info["download_url"]), headers={"User-Agent": "REC-Dryad-audit/1"}
+        str(info["download_url"]),
+        headers={
+            "User-Agent": "Mozilla/5.0 (compatible; REC-Dryad-audit/1)",
+            "Accept": "application/octet-stream,*/*",
+        },
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     with urllib.request.urlopen(req, timeout=180) as resp, output.open("wb") as fh:
@@ -222,7 +260,7 @@ def main() -> None:
         download(info, args.output)
     except (DryadFetchError, OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
         raise SystemExit(f"Dryad fetch failed: {exc}") from exc
-    public = {k: v for k, v in info.items() if k not in {"download_url", "api_download_url"}}
+    public = {k: v for k, v in info.items() if k != "download_url"}
     public["downloaded_bytes"] = args.output.stat().st_size
     if args.provenance:
         args.provenance.parent.mkdir(parents=True, exist_ok=True)
