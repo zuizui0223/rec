@@ -1,0 +1,57 @@
+name: nighthawk-white-sands-2023-count-audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nighthawk-white-sands-2023.yml'
+      - 'NIGHTHAWK_WHITE_SANDS_2023.md'
+      - 'scripts/fetch_dryad_public_file.py'
+      - 'scripts/analyze_nighthawk_manual_segments.py'
+      - 'tests/test_dryad_public_file.py'
+      - 'tests/test_nighthawk_manual_segments.py'
+  workflow_dispatch:
+
+jobs:
+  protected-count-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install XLSX reader
+        run: python -m pip install --disable-pip-version-check openpyxl
+
+      - name: Run frozen resolver and analyzer tests
+        run: |
+          python -m unittest tests.test_dryad_public_file tests.test_nighthawk_manual_segments -v
+
+      - name: Resolve and download protected public validation table
+        run: |
+          mkdir -p /tmp/nighthawk-white-sands-2023
+          python scripts/fetch_dryad_public_file.py \
+            --doi '10.5061/dryad.w6m905r26' \
+            --filename 'Nighthawk_Testing.xlsx' \
+            --output /tmp/nighthawk-white-sands-2023/Nighthawk_Testing.xlsx \
+            --provenance /tmp/nighthawk-white-sands-2023/dryad_provenance.json
+          cat /tmp/nighthawk-white-sands-2023/dryad_provenance.json
+
+      - name: Run frozen count-level REC-H3 audit without row inspection
+        run: |
+          python scripts/analyze_nighthawk_manual_segments.py \
+            /tmp/nighthawk-white-sands-2023/Nighthawk_Testing.xlsx \
+            --output /tmp/nighthawk-white-sands-2023/nighthawk_count_audit.json
+          cat /tmp/nighthawk-white-sands-2023/nighthawk_count_audit.json
+
+      - name: Package aggregate protected evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: nighthawk-white-sands-2023-count-audit
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            /tmp/nighthawk-white-sands-2023/dryad_provenance.json
+            /tmp/nighthawk-white-sands-2023/nighthawk_count_audit.json
