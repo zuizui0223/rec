@@ -1,0 +1,80 @@
+name: birdvox-unit10-real-data-smoke
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/birdvox-unit10-smoke.yml'
+      - 'scripts/score_birdvox_band_energy.py'
+      - 'scripts/build_birdvox_exposure_grid.py'
+      - 'scripts/analyze_birdvox_exposure_grid.py'
+      - 'BIRDVOX_REPLICATION.md'
+  workflow_dispatch:
+
+jobs:
+  unit10-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install real-data scoring dependencies
+        run: python -m pip install --disable-pip-version-check numpy soundfile
+
+      - name: Download frozen BirdVox v3 unit10 inputs
+        run: |
+          mkdir -p /tmp/birdvox-unit10
+          curl -L --fail --retry 3 \
+            'https://zenodo.org/records/1205569/files/BirdVox-full-night_flac-audio_unit10.flac?download=1' \
+            -o /tmp/birdvox-unit10/BirdVox-full-night_flac-audio_unit10.flac
+          curl -L --fail --retry 3 \
+            'https://zenodo.org/records/1205569/files/BirdVox-full-night_csv-annotations_unit10.csv?download=1' \
+            -o /tmp/birdvox-unit10/BirdVox-full-night_csv-annotations_unit10.csv
+
+      - name: Verify frozen v3 file hashes
+        working-directory: /tmp/birdvox-unit10
+        run: |
+          echo 'da23c632bcc466f88d7eb7ab6ad152f3  BirdVox-full-night_flac-audio_unit10.flac' | md5sum -c -
+          echo 'bfe4a6e45731f468cc6dbea0a7968c1c  BirdVox-full-night_csv-annotations_unit10.csv' | md5sum -c -
+
+      - name: Generate annotation-naive continuous scores and audio denominator
+        run: |
+          python scripts/score_birdvox_band_energy.py \
+            /tmp/birdvox-unit10/BirdVox-full-night_flac-audio_unit10.flac \
+            --window-seconds 1 \
+            --scores-output /tmp/birdvox-unit10/birdvox_scores.csv \
+            --manifest-output /tmp/birdvox-unit10/birdvox_manifest.csv
+          cat /tmp/birdvox-unit10/birdvox_manifest.csv
+
+      - name: Build gate-independent unit10 exposure universe
+        run: |
+          python scripts/build_birdvox_exposure_grid.py \
+            /tmp/birdvox-unit10/birdvox_manifest.csv \
+            /tmp/birdvox-unit10/birdvox_scores.csv \
+            /tmp/birdvox-unit10/BirdVox-full-night_csv-annotations_unit10.csv \
+            --window-seconds 1 \
+            --output /tmp/birdvox-unit10/birdvox_exposure_grid.csv
+
+      - name: Analyze frozen z=2 and z=4 gates
+        run: |
+          python scripts/analyze_birdvox_exposure_grid.py \
+            /tmp/birdvox-unit10/birdvox_exposure_grid.csv \
+            --threshold 2 \
+            --threshold 4 \
+            --output /tmp/birdvox-unit10/birdvox_unit10_smoke.json
+          cat /tmp/birdvox-unit10/birdvox_unit10_smoke.json
+
+      - name: Package inspectable smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: birdvox-unit10-real-data-smoke
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            /tmp/birdvox-unit10/birdvox_manifest.csv
+            /tmp/birdvox-unit10/birdvox_scores.csv
+            /tmp/birdvox-unit10/birdvox_exposure_grid.csv
+            /tmp/birdvox-unit10/birdvox_unit10_smoke.json
