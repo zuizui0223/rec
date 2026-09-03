@@ -2,8 +2,11 @@
 """Map Findlay camera-trap pass/trigger/capture data onto REC estimands.
 
 Every input row is an independently observed animal pass. This supports event-conditioned
-loss quantities such as P(no trigger | pass) and P(no capture | pass), but not the
+loss quantities such as P(no trigger | pass) and bounded P(no capture | pass), but not the
 full time-denominator q_shadow = P(event | no record).
+
+A triggered pass with missing CAPTURE is retained as reference-unresolved registration
+mass. It is never silently converted to capture failure.
 """
 from __future__ import annotations
 
@@ -17,6 +20,9 @@ from typing import Any
 
 class FindlayAnalysisError(ValueError):
     pass
+
+
+MISSING = {"", "na", "nan", "none"}
 
 
 def _binary(value: str, field: str) -> bool:
@@ -46,40 +52,65 @@ def _read(path: Path, required: set[str]) -> list[dict[str, str]]:
     return rows
 
 
-def _capture_state(row: dict[str, str]) -> tuple[bool, bool]:
-    """Return trigger R and pass-level entry K for registration tables."""
+def _capture_state(row: dict[str, str]) -> tuple[bool, bool | None]:
+    """Return trigger R and pass-level entry K; None means registration unresolved."""
     r = _binary(row["TRIGGER"], "TRIGGER")
     text = str(row["CAPTURE"]).strip().lower()
     if r:
-        if text in {"", "na", "nan", "none"}:
-            raise FindlayAnalysisError("triggered pass has unresolved CAPTURE")
-        k = _binary(text, "CAPTURE")
-    else:
-        if text not in {"", "na", "nan", "none", "0", "false"}:
-            raise FindlayAnalysisError("non-triggered pass has positive CAPTURE")
-        k = False
-    return r, k
+        if text in MISSING:
+            return True, None
+        return True, _binary(text, "CAPTURE")
+
+    # Without a trigger there is no camera-created record from that pass. Missing CAPTURE
+    # therefore has known K=0 semantics, while a positive CAPTURE would be contradictory.
+    if text not in MISSING | {"0", "false", "f", "no", "n"}:
+        raise FindlayAnalysisError("non-triggered pass has positive CAPTURE")
+    return False, False
 
 
 def _stage_summary(rows: list[dict[str, str]]) -> dict[str, Any]:
     n = len(rows)
     trigger = 0
     capture = 0
+    unresolved_triggered = 0
+    evaluable_triggered = 0
     capture_fail_after_trigger = 0
+    identified_no_entry = 0
+
     for row in rows:
         r, k = _capture_state(row)
         trigger += int(r)
-        capture += int(k)
-        capture_fail_after_trigger += int(r and not k)
+        if r and k is None:
+            unresolved_triggered += 1
+            continue
+        if r:
+            evaluable_triggered += 1
+            capture_fail_after_trigger += int(k is False)
+        capture += int(k is True)
+        identified_no_entry += int(k is False)
+
+    resolved_k_passes = n - unresolved_triggered
+    lower = identified_no_entry / n
+    upper = (identified_no_entry + unresolved_triggered) / n
     return {
         "pass_count": n,
         "triggered_passes": trigger,
-        "captured_passes": capture,
+        "captured_passes_confirmed": capture,
+        "registration_evaluable_triggered_passes": evaluable_triggered,
+        "registration_unresolved_triggered_passes": unresolved_triggered,
+        "registration_unresolved_fraction_given_trigger": _ratio(unresolved_triggered, trigger),
         "a_R_no_trigger_given_pass": 1.0 - trigger / n,
-        "a_K_no_capture_given_pass": 1.0 - capture / n,
-        "a_registration_failure_given_trigger": _ratio(capture_fail_after_trigger, trigger),
+        "a_K_no_capture_given_pass_resolved_only": _ratio(identified_no_entry, resolved_k_passes),
+        "a_K_no_capture_given_pass_bounds": {"lower": lower, "upper": upper},
+        "a_registration_failure_given_trigger_evaluable": _ratio(
+            capture_fail_after_trigger, evaluable_triggered
+        ),
         "trigger_rate_given_pass": trigger / n,
-        "capture_rate_given_pass": capture / n,
+        "confirmed_capture_rate_given_pass": capture / n,
+        "interpretation": (
+            "Triggered passes with missing CAPTURE are registration-unresolved. They are excluded from the "
+            "resolved-only K estimate and assigned adversarially in the pass-level K bounds."
+        ),
     }
 
 
@@ -87,14 +118,26 @@ def _group_stage(rows: list[dict[str, str]], field: str, min_n: int = 1) -> dict
     groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         value = str(row.get(field, "")).strip()
-        if value and value.lower() not in {"na", "nan", "none"}:
+        if value and value.lower() not in MISSING:
             groups[value].append(row)
     out = {k: _stage_summary(v) for k, v in sorted(groups.items()) if len(v) >= min_n}
     if not out:
-        return {"levels": {}, "a_R_range": None, "a_K_range": None}
+        return {
+            "levels": {},
+            "a_R_range": None,
+            "a_K_resolved_only_range": None,
+        }
     ar = [x["a_R_no_trigger_given_pass"] for x in out.values()]
-    ak = [x["a_K_no_capture_given_pass"] for x in out.values()]
-    return {"levels": out, "a_R_range": max(ar) - min(ar), "a_K_range": max(ak) - min(ak)}
+    ak = [
+        x["a_K_no_capture_given_pass_resolved_only"]
+        for x in out.values()
+        if x["a_K_no_capture_given_pass_resolved_only"] is not None
+    ]
+    return {
+        "levels": out,
+        "a_R_range": max(ar) - min(ar),
+        "a_K_resolved_only_range": max(ak) - min(ak) if ak else None,
+    }
 
 
 def _composition(rows: list[dict[str, str]], field: str) -> dict[str, Any]:
@@ -102,15 +145,19 @@ def _composition(rows: list[dict[str, str]], field: str) -> dict[str, Any]:
     truth_counts = defaultdict(int)
     trigger_counts = defaultdict(int)
     capture_counts = defaultdict(int)
+    unresolved_capture_counts = defaultdict(int)
     for row in rows:
         level = str(row[field]).strip()
         r, k = _capture_state(row)
         truth_counts[level] += 1
         trigger_counts[level] += int(r)
-        capture_counts[level] += int(k)
+        capture_counts[level] += int(k is True)
+        unresolved_capture_counts[level] += int(r and k is None)
+
     truth_n = sum(truth_counts.values())
     trigger_n = sum(trigger_counts.values())
     capture_n = sum(capture_counts.values())
+    unresolved_n = sum(unresolved_capture_counts.values())
     level_results = {}
     for level in levels:
         tp = truth_counts[level] / truth_n if truth_n else None
@@ -119,22 +166,40 @@ def _composition(rows: list[dict[str, str]], field: str) -> dict[str, Any]:
         level_results[level] = {
             "truth_pass_proportion": tp,
             "trigger_world_proportion": rp,
-            "capture_world_proportion": kp,
+            "confirmed_capture_world_proportion": kp,
+            "registration_unresolved_triggered_passes": unresolved_capture_counts[level],
             "trigger_minus_truth": None if tp is None or rp is None else rp - tp,
-            "capture_minus_truth": None if tp is None or kp is None else kp - tp,
+            "confirmed_capture_minus_truth": None if tp is None or kp is None else kp - tp,
         }
-    tv_trigger = 0.5 * sum(abs(v["trigger_minus_truth"]) for v in level_results.values()) if trigger_n else None
-    tv_capture = 0.5 * sum(abs(v["capture_minus_truth"]) for v in level_results.values()) if capture_n else None
+    tv_trigger = (
+        0.5 * sum(abs(v["trigger_minus_truth"]) for v in level_results.values())
+        if trigger_n
+        else None
+    )
+    tv_capture = (
+        0.5 * sum(abs(v["confirmed_capture_minus_truth"]) for v in level_results.values())
+        if capture_n
+        else None
+    )
     return {
         "field": field,
         "levels": level_results,
+        "confirmed_capture_count": capture_n,
+        "registration_unresolved_triggered_count": unresolved_n,
         "total_variation_truth_vs_trigger": tv_trigger,
-        "total_variation_truth_vs_capture": tv_capture,
+        "total_variation_truth_vs_confirmed_capture": tv_capture,
+        "capture_composition_boundary": (
+            "Capture-world composition uses confirmed CAPTURE=1 rows only; triggered rows with missing "
+            "CAPTURE remain explicit unresolved mass and are not recoded as non-captures."
+        ),
     }
 
 
 def analyze_fox_badger(path: Path) -> dict[str, Any]:
-    rows = _read(path, {"SPECIES", "CT.POS", "ORIENT", "GAIT", "DIST", "LOIT", "TRIGGER", "CAPTURE"})
+    rows = _read(
+        path,
+        {"SPECIES", "CT.POS", "ORIENT", "GAIT", "DIST", "LOIT", "TRIGGER", "CAPTURE"},
+    )
     species = _group_stage(rows, "SPECIES")
     return {
         "source_file": path.name,
@@ -142,7 +207,8 @@ def analyze_fox_badger(path: Path) -> dict[str, Any]:
         "REC_H1_event_conditioned_shadow": {
             "by_species": species,
             "supported": any(
-                x["a_R_no_trigger_given_pass"] > 0 or x["a_K_no_capture_given_pass"] > 0
+                x["a_R_no_trigger_given_pass"] > 0
+                or x["a_K_no_capture_given_pass_bounds"]["lower"] > 0
                 for x in species["levels"].values()
             ),
         },
@@ -158,8 +224,8 @@ def analyze_fox_badger(path: Path) -> dict[str, Any]:
             "species": _composition(rows, "SPECIES"),
             "gait": _composition(rows, "GAIT"),
             "interpretation": (
-                "All rows are known passes. Differences between pass-world and capture-world composition quantify "
-                "record-entry distortion among true encounters; they are not occurrence or abundance estimates."
+                "All rows are known passes. Differences between pass-world, trigger-world and confirmed-capture-world "
+                "composition quantify record-entry distortion among true encounters; they are not occurrence or abundance estimates."
             ),
         },
     }
@@ -180,7 +246,7 @@ def _group_trigger(rows: list[dict[str, str]], field: str, min_n: int = 1) -> di
     groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         value = str(row.get(field, "")).strip()
-        if value and value.lower() not in {"na", "nan", "none"}:
+        if value and value.lower() not in MISSING:
             groups[value].append(row)
     out = {k: _trigger_summary(v) for k, v in sorted(groups.items()) if len(v) >= min_n}
     vals = [x["a_R_no_trigger_given_pass"] for x in out.values()]
@@ -211,7 +277,10 @@ def _trigger_composition(rows: list[dict[str, str]], field: str) -> dict[str, An
 
 
 def analyze_otter_wetdry(path: Path) -> dict[str, Any]:
-    rows = _read(path, {"CT.POS", "CAMERA.ID", "ORIENT", "GAIT", "DIST", "wet.dry", "LOIT", "TRIGGER"})
+    rows = _read(
+        path,
+        {"CT.POS", "CAMERA.ID", "ORIENT", "GAIT", "DIST", "wet.dry", "LOIT", "TRIGGER"},
+    )
     cameras = sorted({r["CAMERA.ID"].strip() for r in rows})
     per_camera = {}
     for camera in cameras:
@@ -227,7 +296,9 @@ def analyze_otter_wetdry(path: Path) -> dict[str, Any]:
         "source_file": path.name,
         "overall": _trigger_summary(rows),
         "REC_H1_event_conditioned_shadow": {
-            "supported": any(v["overall"]["a_R_no_trigger_given_pass"] > 0 for v in per_camera.values()),
+            "supported": any(
+                v["overall"]["a_R_no_trigger_given_pass"] > 0 for v in per_camera.values()
+            ),
             "by_camera": {k: v["overall"] for k, v in per_camera.items()},
         },
         "REC_H2_structured_selection": {"per_camera": per_camera},
@@ -242,13 +313,14 @@ def analyze_otter_wetdry(path: Path) -> dict[str, Any]:
 
 def analyze(fox_badger: Path, otter_wetdry: Path) -> dict[str, Any]:
     return {
-        "schema": "rec-findlay-camera-trap-external-validation-v1",
+        "schema": "rec-findlay-camera-trap-external-validation-v2",
         "fox_badger_registration": analyze_fox_badger(fox_badger),
         "otter_wet_dry_trigger": analyze_otter_wetdry(otter_wetdry),
         "identification_boundary": (
             "These public tables are conditioned on independently observed animal passes. They identify event-conditioned "
             "trigger/capture loss and composition distortion among true passes, but they do not enumerate non-pass time exposure. "
-            "Therefore q_shadow=P(event|no record) over a master temporal denominator is not identified and is intentionally not reported."
+            "Therefore q_shadow=P(event|no record) over a master temporal denominator is not identified and is intentionally not reported. "
+            "Missing CAPTURE after a trigger is retained as registration-unresolved dark mass and bounded rather than coerced to failure."
         ),
         "positioning_boundary": (
             "Findlay et al. explicitly studied component detection probabilities and false negatives. REC does not claim those empirical "
