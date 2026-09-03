@@ -89,22 +89,44 @@ class BirdVoxReplicationTests(unittest.TestCase):
         self.assertEqual(row["gate_evaluable"], "false")
         self.assertEqual(row["max_score"], "")
 
-    def test_h1_h3_and_gate_sensitivity_are_computed_on_heldout(self):
+    def test_h1_h3_h4_and_condition_map_use_heldout_only(self):
         path, _ = self._grid()
         result = analysis_mod.analyze(analysis_mod.load_grid(path), [30.0, 70.0])
         low, high = result["threshold_results"]
         self.assertEqual(low["heldout"]["window_count"], 8)
-        self.assertEqual(low["REC_H1_shadow_existence"]["shadow_positive_windows"], 0)
-        self.assertEqual(high["REC_H1_shadow_existence"]["shadow_positive_windows"], 2)
+        self.assertEqual(low["REC_H1_shadow_existence"]["no_entry_positive_windows"], 0)
+        self.assertEqual(high["REC_H1_shadow_existence"]["no_entry_positive_windows"], 2)
         self.assertAlmostEqual(
             high["REC_H1_shadow_existence"]["a_R_event_absorbed_by_gate"], 0.5
+        )
+        self.assertAlmostEqual(
+            high["REC_H1_shadow_existence"]["a_K_event_not_entered"], 0.5
+        )
+        self.assertEqual(
+            set(high["REC_H2_structured_selection"]["by_night_half"]),
+            {"early", "late"},
         )
         self.assertGreater(
             high["REC_H3_ecological_distortion"]["absolute_temporal_contrast_error"],
             0.0,
         )
         gate = result["REC_H4_gate_semantics_sensitivity"][0]
-        self.assertGreater(gate["delta_event_absorption"], 0.0)
+        self.assertGreater(gate["delta_event_absorption_a_R"], 0.0)
+        self.assertGreater(gate["delta_event_nonentry_a_K"], 0.0)
+
+    def test_gate_unevaluable_positive_affects_aK_but_not_aR(self):
+        scores = self.dir / "scores.csv"
+        lines = scores.read_text(encoding="utf-8").splitlines()
+        scores.write_text(
+            "\n".join(line for line in lines if "02,2.1,40" not in line) + "\n",
+            encoding="utf-8",
+        )
+        path, _ = self._grid()
+        result = analysis_mod.analyze(analysis_mod.load_grid(path), [70.0])
+        h1 = result["threshold_results"][0]["REC_H1_shadow_existence"]
+        self.assertEqual(h1["gate_unevaluable_positive_windows"], 1)
+        self.assertAlmostEqual(h1["a_R_event_absorbed_by_gate"], 1.0 / 3.0)
+        self.assertAlmostEqual(h1["a_K_event_not_entered"], 0.5)
 
     def test_out_of_duration_annotation_fails_closed(self):
         bad = self.dir / "BirdVox-full-night_csv-annotations_unit02.csv"
