@@ -12,8 +12,19 @@ on:
 
 jobs:
   protected-replication:
+    name: protected-unit${{ matrix.unit }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - unit: '02'
+            audio_md5: '70ba6b785a0a8dfaf06da67c58b5660b'
+            annotation_md5: '831f62043b2c404cedb7004032905408'
+          - unit: '05'
+            audio_md5: '9d924ec80c75ea15f58406b32b1bfc5f'
+            annotation_md5: 'b1aeb87763990856d92d6db162a8c5a0'
     steps:
       - uses: actions/checkout@v4
 
@@ -24,86 +35,82 @@ jobs:
       - name: Install real-data scoring dependencies
         run: python -m pip install --disable-pip-version-check numpy soundfile
 
-      - name: Download protected BirdVox v3 unit02 and unit05 inputs in parallel
+      - name: Download protected BirdVox v3 unit${{ matrix.unit }} inputs
         run: |
           set -euo pipefail
-          mkdir -p /tmp/birdvox-protected
-          for unit in 02 05; do
-            (
-              curl -L --fail --retry 3 \
-                "https://zenodo.org/records/1205569/files/BirdVox-full-night_flac-audio_unit${unit}.flac?download=1" \
-                -o "/tmp/birdvox-protected/BirdVox-full-night_flac-audio_unit${unit}.flac"
-              curl -L --fail --retry 3 \
-                "https://zenodo.org/records/1205569/files/BirdVox-full-night_csv-annotations_unit${unit}.csv?download=1" \
-                -o "/tmp/birdvox-protected/BirdVox-full-night_csv-annotations_unit${unit}.csv"
-            ) &
-          done
-          wait
+          D=/tmp/birdvox-protected-${{ matrix.unit }}
+          mkdir -p "$D"
+          curl -L --fail --retry 3 \
+            "https://zenodo.org/records/1205569/files/BirdVox-full-night_flac-audio_unit${{ matrix.unit }}.flac?download=1" \
+            -o "$D/BirdVox-full-night_flac-audio_unit${{ matrix.unit }}.flac"
+          curl -L --fail --retry 3 \
+            "https://zenodo.org/records/1205569/files/BirdVox-full-night_csv-annotations_unit${{ matrix.unit }}.csv?download=1" \
+            -o "$D/BirdVox-full-night_csv-annotations_unit${{ matrix.unit }}.csv"
 
       - name: Verify frozen v3 protected file hashes
-        working-directory: /tmp/birdvox-protected
         run: |
           set -euo pipefail
-          cat <<'EOF' | md5sum -c -
-          70ba6b785a0a8dfaf06da67c58b5660b  BirdVox-full-night_flac-audio_unit02.flac
-          831f62043b2c404cedb7004032905408  BirdVox-full-night_csv-annotations_unit02.csv
-          9d924ec80c75ea15f58406b32b1bfc5f  BirdVox-full-night_flac-audio_unit05.flac
-          b1aeb87763990856d92d6db162a8c5a0  BirdVox-full-night_csv-annotations_unit05.csv
-          EOF
+          D=/tmp/birdvox-protected-${{ matrix.unit }}
+          echo "${{ matrix.audio_md5 }}  $D/BirdVox-full-night_flac-audio_unit${{ matrix.unit }}.flac" | md5sum -c -
+          echo "${{ matrix.annotation_md5 }}  $D/BirdVox-full-night_csv-annotations_unit${{ matrix.unit }}.csv" | md5sum -c -
 
-      - name: Generate frozen annotation-naive protected score streams
+      - name: Generate frozen annotation-naive score stream
         run: |
+          D=/tmp/birdvox-protected-${{ matrix.unit }}
           python scripts/score_birdvox_band_energy.py \
-            /tmp/birdvox-protected/BirdVox-full-night_flac-audio_unit02.flac \
-            /tmp/birdvox-protected/BirdVox-full-night_flac-audio_unit05.flac \
+            "$D/BirdVox-full-night_flac-audio_unit${{ matrix.unit }}.flac" \
             --window-seconds 1 \
-            --scores-output /tmp/birdvox-protected/birdvox_scores.csv \
-            --manifest-output /tmp/birdvox-protected/birdvox_manifest.csv
-          cat /tmp/birdvox-protected/birdvox_manifest.csv
+            --scores-output "$D/birdvox_scores.csv" \
+            --manifest-output "$D/birdvox_manifest.csv"
+          cat "$D/birdvox_manifest.csv"
 
       - name: Build gate-independent protected exposure universe
         run: |
+          D=/tmp/birdvox-protected-${{ matrix.unit }}
           python scripts/build_birdvox_exposure_grid.py \
-            /tmp/birdvox-protected/birdvox_manifest.csv \
-            /tmp/birdvox-protected/birdvox_scores.csv \
-            /tmp/birdvox-protected/BirdVox-full-night_csv-annotations_unit02.csv \
-            /tmp/birdvox-protected/BirdVox-full-night_csv-annotations_unit05.csv \
+            "$D/birdvox_manifest.csv" \
+            "$D/birdvox_scores.csv" \
+            "$D/BirdVox-full-night_csv-annotations_unit${{ matrix.unit }}.csv" \
             --window-seconds 1 \
-            --output /tmp/birdvox-protected/birdvox_exposure_grid.csv
+            --output "$D/birdvox_exposure_grid.csv"
 
-      - name: Analyze frozen z=2 and z=4 gates on protected units only
+      - name: Analyze frozen z=2 and z=4 gates
         run: |
+          D=/tmp/birdvox-protected-${{ matrix.unit }}
           python scripts/analyze_birdvox_exposure_grid.py \
-            /tmp/birdvox-protected/birdvox_exposure_grid.csv \
+            "$D/birdvox_exposure_grid.csv" \
             --threshold 2 \
             --threshold 4 \
-            --output /tmp/birdvox-protected/birdvox_protected_results.json
+            --output "$D/birdvox_protected_results.json"
           python - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
-          x = json.loads(Path('/tmp/birdvox-protected/birdvox_protected_results.json').read_text())
+          unit = os.environ['UNIT']
+          x = json.loads(Path(f'/tmp/birdvox-protected-{unit}/birdvox_protected_results.json').read_text())
           for r in x['threshold_results']:
               h1 = r['REC_H1_shadow_existence']
               h2 = r['REC_H2_structured_selection']
               h3 = r['REC_H3_ecological_distortion']
-              print('threshold', r['threshold'])
+              print('unit', unit, 'threshold', r['threshold'])
               print('a_R', h1['a_R_event_absorbed_by_gate'])
               print('q_B', h1['q_B_event_given_registered_baseline'])
-              print('sensor absorption', {k:v['event_absorption_a_R'] for k,v in h2['by_sensor'].items()})
+              print('by_half', h2['by_half'])
               print('truth contrast', h3['truth_late_minus_early_prevalence'])
               print('recorded contrast', h3['recorded_late_minus_early_prevalence'])
-              print('sensor Spearman', h3['sensor_rate_spearman'])
+              print('absolute contrast error', h3['absolute_temporal_contrast_error'])
           print('H4', x['REC_H4_gate_semantics_sensitivity'])
           PY
+        env:
+          UNIT: ${{ matrix.unit }}
 
-      - name: Package protected replication artifacts
+      - name: Package protected replication artifact
         uses: actions/upload-artifact@v4
         with:
-          name: birdvox-protected-02-05-real-data
+          name: birdvox-protected-unit${{ matrix.unit }}-real-data
           if-no-files-found: error
           retention-days: 14
           path: |
-            /tmp/birdvox-protected/birdvox_manifest.csv
-            /tmp/birdvox-protected/birdvox_scores.csv
-            /tmp/birdvox-protected/birdvox_exposure_grid.csv
-            /tmp/birdvox-protected/birdvox_protected_results.json
+            /tmp/birdvox-protected-${{ matrix.unit }}/birdvox_manifest.csv
+            /tmp/birdvox-protected-${{ matrix.unit }}/birdvox_scores.csv
+            /tmp/birdvox-protected-${{ matrix.unit }}/birdvox_exposure_grid.csv
+            /tmp/birdvox-protected-${{ matrix.unit }}/birdvox_protected_results.json
