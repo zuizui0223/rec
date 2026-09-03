@@ -17,7 +17,10 @@ class DryadFetchError(ValueError):
 
 
 def _get_json(url: str) -> dict[str, Any]:
-    req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "REC-Dryad-audit/1"})
+    req = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "REC-Dryad-audit/1"},
+    )
     with urllib.request.urlopen(req, timeout=60) as resp:
         return json.load(resp)
 
@@ -44,24 +47,37 @@ def _embedded_records(obj: Any) -> list[dict[str, Any]]:
     return records
 
 
+def _integer(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
+
+
 def select_latest_version(payload: dict[str, Any]) -> int:
-    candidates = [r for r in _embedded_records(payload) if isinstance(r.get("id"), int)]
+    candidates = [r for r in _embedded_records(payload) if _integer(r.get("id")) is not None]
     if not candidates:
-        # Some API responses put version records directly in a top-level list-like field.
         candidates = [
-            v for v in payload.values() if isinstance(v, dict) and isinstance(v.get("id"), int)
+            v
+            for v in payload.values()
+            if isinstance(v, dict) and _integer(v.get("id")) is not None
         ]
     if not candidates:
-        raise DryadFetchError("Dryad versions response contains no integer version id")
+        raise DryadFetchError("Dryad versions response contains no numeric version id")
 
     def key(row: dict[str, Any]) -> tuple:
         return (
             str(row.get("versionNumber", "")),
             str(row.get("lastModificationDate", row.get("publicationDate", ""))),
-            int(row["id"]),
+            _integer(row.get("id")) or -1,
         )
 
-    return int(sorted(candidates, key=key)[-1]["id"])
+    selected = _integer(sorted(candidates, key=key)[-1].get("id"))
+    assert selected is not None
+    return selected
 
 
 def select_named_file(payload: dict[str, Any], filename: str) -> dict[str, Any]:
@@ -75,7 +91,9 @@ def select_named_file(payload: dict[str, Any], filename: str) -> dict[str, Any]:
         if any(str(v).split("/")[-1].casefold() == target for v in names if v):
             hits.append(row)
     if len(hits) != 1:
-        raise DryadFetchError(f"expected exactly one Dryad file named {filename!r}, found {len(hits)}")
+        raise DryadFetchError(
+            f"expected exactly one Dryad file named {filename!r}, found {len(hits)}"
+        )
     return hits[0]
 
 
@@ -99,18 +117,20 @@ def _download_href(row: dict[str, Any]) -> str | None:
 def _landing_download(doi: str, filename: str) -> str | None:
     landing = "https://datadryad.org/dataset/" + urllib.parse.quote("doi:" + doi, safe="")
     text = _get_text(landing)
-    # SSR pages expose the public file-stream link near the human-readable filename.
-    anchors = re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', text, flags=re.I | re.S)
+    anchors = re.findall(
+        r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>',
+        text,
+        flags=re.I | re.S,
+    )
     for href, inner in anchors:
         label = re.sub(r"<[^>]+>", "", inner)
         label = html.unescape(label).strip()
         if label.casefold() == filename.casefold() and "downloads/file_stream/" in href:
             return urllib.parse.urljoin("https://datadryad.org", html.unescape(href))
-    # Defensive local-window fallback for markup changes.
     pos = text.casefold().find(filename.casefold())
     if pos >= 0:
-        window = text[max(0, pos - 3000): pos + 3000]
-        match = re.search(r'(/downloads/file_stream/\d+)', window)
+        window = text[max(0, pos - 3000) : pos + 3000]
+        match = re.search(r"(/downloads/file_stream/\d+)", window)
         if match:
             return urllib.parse.urljoin("https://datadryad.org", match.group(1))
     return None
@@ -127,18 +147,16 @@ def resolve(doi: str, filename: str) -> dict[str, Any]:
     href = _download_href(row)
     if href is None:
         href = _landing_download(doi, filename)
-    if href is None:
-        file_id = row.get("id")
-        if isinstance(file_id, int):
-            # Dryad public file-stream IDs commonly match file metadata IDs; try only as a final explicit fallback.
-            href = f"https://datadryad.org/downloads/file_stream/{file_id}"
+    file_id = _integer(row.get("id"))
+    if href is None and file_id is not None:
+        href = f"https://datadryad.org/downloads/file_stream/{file_id}"
     if href is None:
         raise DryadFetchError(f"could not resolve public download URL for {filename}")
     return {
         "doi": doi,
         "filename": filename,
         "version_id": version_id,
-        "file_id": row.get("id"),
+        "file_id": file_id if file_id is not None else row.get("id"),
         "size": row.get("size"),
         "mimetype": row.get("mimeType", row.get("mimetype")),
         "download_url": href,
@@ -148,7 +166,9 @@ def resolve(doi: str, filename: str) -> dict[str, Any]:
 
 
 def download(info: dict[str, Any], output: Path) -> None:
-    req = urllib.request.Request(str(info["download_url"]), headers={"User-Agent": "REC-Dryad-audit/1"})
+    req = urllib.request.Request(
+        str(info["download_url"]), headers={"User-Agent": "REC-Dryad-audit/1"}
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     with urllib.request.urlopen(req, timeout=180) as resp, output.open("wb") as fh:
         while True:
@@ -156,13 +176,12 @@ def download(info: dict[str, Any], output: Path) -> None:
             if not chunk:
                 break
             fh.write(chunk)
-    if output.stat().st_size == 0:
+    actual = output.stat().st_size
+    if actual == 0:
         raise DryadFetchError("downloaded file is empty")
-    expected = info.get("size")
-    if isinstance(expected, int) and expected > 0 and output.stat().st_size != expected:
-        raise DryadFetchError(
-            f"download size mismatch: expected {expected}, got {output.stat().st_size}"
-        )
+    expected = _integer(info.get("size"))
+    if expected is not None and expected > 0 and actual != expected:
+        raise DryadFetchError(f"download size mismatch: expected {expected}, got {actual}")
 
 
 def main() -> None:
@@ -181,7 +200,9 @@ def main() -> None:
     public["downloaded_bytes"] = args.output.stat().st_size
     if args.provenance:
         args.provenance.parent.mkdir(parents=True, exist_ok=True)
-        args.provenance.write_text(json.dumps(public, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        args.provenance.write_text(
+            json.dumps(public, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     print(json.dumps(public, sort_keys=True))
 
 
