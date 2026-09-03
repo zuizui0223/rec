@@ -19,7 +19,7 @@ class BirdVoxUpstreamOmissionTests(unittest.TestCase):
             path.write_text(
                 "sensor_id,split,window_id,window_start_seconds,window_end_seconds,truth_positive,gate_evaluable,max_score\n"
                 "02,heldout,w0,0,1,false,true,3\n"
-                "02,heldout,w1,1,2,true,true,1\n"
+                "02,heldout,w1,1,2,true,true,3\n"
                 "02,heldout,w2,2,3,true,true,3\n"
                 "02,heldout,w3,3,4,true,true,1\n",
                 encoding="utf-8",
@@ -28,9 +28,9 @@ class BirdVoxUpstreamOmissionTests(unittest.TestCase):
             r = result["threshold_results"][0]
             # Truth rises from 0.5 early to 1.0 late: +0.5.
             self.assertAlmostEqual(r["truth_late_minus_early"], 0.5)
-            # Raw record falls because the early false entry compensates the missed true event.
+            # Early has one true entry plus one false entry; late has one true entry and one omitted event.
             self.assertAlmostEqual(r["raw_recorded_late_minus_early"], -0.5)
-            # Perfect downstream semantics removes the false entry but cannot restore omissions.
+            # Perfect downstream semantics removes the false entry but cannot restore the omitted true event.
             self.assertAlmostEqual(
                 r["oracle_downstream_true_entry_late_minus_early"], 0.0
             )
