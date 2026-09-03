@@ -1,0 +1,144 @@
+{
+  "schema": "rec-findlay-camera-trap-evidence-v1",
+  "source": {
+    "upstream_repository": "melaniefindlay/CT-Detection",
+    "upstream_commit": "abc72f535bb59ebed202fb7acca852fc1647e97a",
+    "fox_badger_registration_blob": "d2dc9852ca1f2a1380b991acba425d16e12327d5",
+    "otter_wet_dry_trigger_blob": "1f2fef008470ad1263d76beeb5be2b7006ff85aa",
+    "workflow_run_id": 33775481327,
+    "artifact_id": 9901377929,
+    "artifact_sha256": "70d5aec4e8fa1c234d382555eac1707aa0f820fdf9683174e7eaaeff523205fd",
+    "workflow_head_sha": "412171013292d936c19fa6eb1be24d96ddb3541c"
+  },
+  "fox_badger_registration": {
+    "overall": {
+      "pass_count": 881,
+      "confirmed_triggered_passes": 428,
+      "confirmed_captured_passes": 174,
+      "a_R_no_trigger_given_pass_resolved_only": 0.5141884222474461,
+      "a_R_no_trigger_given_pass_bounds": {
+        "lower": 0.5141884222474461,
+        "upper": 0.5141884222474461
+      },
+      "a_K_no_capture_given_pass_resolved_only": 0.8020477815699659,
+      "a_K_no_capture_given_pass_bounds": {
+        "lower": 0.8002270147559591,
+        "upper": 0.8024971623155505
+      },
+      "a_registration_failure_given_confirmed_trigger_evaluable": 0.5915492957746479,
+      "capture_unresolved_passes": 2,
+      "capture_unresolved_fraction_given_pass": 0.0022701475595913734
+    },
+    "by_species": {
+      "BADGER": {
+        "pass_count": 317,
+        "a_R": 0.4069400630914827,
+        "a_K_resolved_only": 0.7333333333333333,
+        "a_K_bounds": {
+          "lower": 0.7287066246056783,
+          "upper": 0.7350157728706624
+        },
+        "confirmed_capture_rate": 0.26498422712933756
+      },
+      "FOX": {
+        "pass_count": 564,
+        "a_R": 0.574468085106383,
+        "a_K_resolved_only": 0.8404255319148937,
+        "a_K_bounds": {
+          "lower": 0.8404255319148937,
+          "upper": 0.8404255319148937
+        },
+        "confirmed_capture_rate": 0.1595744680851064
+      },
+      "a_R_range": 0.16752802201490036,
+      "a_K_resolved_only_range": 0.10709219858156038
+    },
+    "structured_loss_ranges": {
+      "camera_position_a_R_range": 0.31682837069253933,
+      "distance_a_R_range": 0.507852985729092,
+      "gait_a_R_range": 0.16570943741025973,
+      "loitering_a_R_range": 0.19695096827358877,
+      "orientation_a_R_range": 0.16451990632318497,
+      "species_a_R_range": 0.16752802201490036,
+      "camera_position_a_K_resolved_only_range": 0.2191326001245072,
+      "distance_a_K_resolved_only_range": 0.13156990724836826,
+      "gait_a_K_resolved_only_range": 0.17435918914391024,
+      "loitering_a_K_resolved_only_range": 0.2836121437422553,
+      "orientation_a_K_resolved_only_range": 0.4570789865871833,
+      "species_a_K_resolved_only_range": 0.10709219858156038
+    },
+    "composition_distortion": {
+      "species": {
+        "truth_badger": 0.3598183881952327,
+        "confirmed_trigger_badger": 0.4392523364485981,
+        "confirmed_capture_badger": 0.4827586206896552,
+        "truth_fox": 0.6401816118047673,
+        "confirmed_trigger_fox": 0.5607476635514018,
+        "confirmed_capture_fox": 0.5172413793103449,
+        "total_variation_truth_vs_confirmed_trigger": 0.07943394825336544,
+        "total_variation_truth_vs_confirmed_capture": 0.12294023249442246
+      },
+      "gait": {
+        "total_variation_truth_vs_confirmed_trigger": 0.015965290080303857,
+        "total_variation_truth_vs_confirmed_capture": 0.11878481871436586
+      }
+    }
+  },
+  "otter_wet_dry_trigger": {
+    "overall": {
+      "pass_count": 706,
+      "confirmed_triggered_passes": 430,
+      "trigger_unresolved_passes": 1,
+      "a_R_no_trigger_given_pass_resolved_only": 0.3900709219858156,
+      "a_R_no_trigger_given_pass_bounds": {
+        "lower": 0.3895184135977337,
+        "upper": 0.3909348441926346
+      }
+    },
+    "by_camera": {
+      "A": {
+        "pass_count": 242,
+        "a_R": 0.3884297520661157,
+        "dry_a_R": 0.20588235294117646,
+        "wet_a_R": 0.6226415094339622,
+        "wet_minus_dry_a_R": 0.4167591564927858,
+        "wet_truth_proportion": 0.4380165289256198,
+        "wet_confirmed_trigger_proportion": 0.2702702702702703,
+        "wet_dry_composition_total_variation": 0.16774625865534953
+      },
+      "BS": {
+        "pass_count": 224,
+        "a_R": 0.4107142857142857,
+        "dry_a_R": 0.32231404958677684,
+        "wet_a_R": 0.5145631067961165,
+        "wet_minus_dry_a_R": 0.19224905720933966,
+        "wet_truth_proportion": 0.45982142857142855,
+        "wet_confirmed_trigger_proportion": 0.3787878787878788,
+        "wet_dry_composition_total_variation": 0.08103354978354979
+      },
+      "BV": {
+        "pass_count": 240,
+        "a_R_resolved_only": 0.3723849372384937,
+        "a_R_bounds": {
+          "lower": 0.37083333333333335,
+          "upper": 0.375
+        },
+        "dry_a_R_resolved_only": 0.25757575757575757,
+        "wet_a_R": 0.514018691588785,
+        "wet_minus_dry_a_R_resolved_only": 0.2564429340130274,
+        "wet_truth_proportion": 0.44583333333333336,
+        "wet_confirmed_trigger_proportion": 0.3466666666666667,
+        "wet_dry_composition_total_variation": 0.09916666666666665,
+        "trigger_unresolved_passes": 1
+      }
+    }
+  },
+  "claim_boundary": {
+    "REC_H1": "positive external real-world evidence: known animal passes commonly fail trigger and final registration/capture stages",
+    "REC_H2": "positive descriptive structure: loss varies strongly across biological and observation conditions; wet passes have higher trigger loss than dry passes in all three otter camera types",
+    "REC_H3": "positive observed-world composition distortion: species/gait and wet/dry composition shift between true-pass and recorded worlds",
+    "q_shadow": "not identified because these tables are conditioned on animal passes and do not enumerate non-pass temporal exposure",
+    "novelty": "Findlay et al. already studied component detectability and false negatives; REC uses this as external mechanism validation rather than claiming the camera-trap pattern itself as novel",
+    "missingness": "TRIGGER/CAPTURE NA values remain reference-unresolved dark mass and are bounded rather than recoded as failures"
+  }
+}
