@@ -1,20 +1,22 @@
 # Findlay camera-trap REC external validation
 
-Status: **positive external real-world validation of REC record-entry loss and ecological composition distortion; not a novelty claim for camera-trap false negatives**.
+Status: **positive external real-world validation of record-entry loss and ecological composition distortion; later CT-position standardization sharpens which composition effects are robust. This is not a novelty claim for camera-trap false negatives.**
 
-This analysis uses the public `melaniefindlay/CT-Detection` repository at immutable commit `abc72f535bb59ebed202fb7acca852fc1647e97a`. GitHub Actions run `33775481327` verified the exact upstream Git blob identities before analysis and completed successfully. The machine-readable evidence is `results/findlay_camera_trap_real_data_v1.json`; the source artifact digest is `sha256:70d5aec4e8fa1c234d382555eac1707aa0f820fdf9683174e7eaaeff523205fd`.
+Source: public `melaniefindlay/CT-Detection` repository at immutable commit `abc72f535bb59ebed202fb7acca852fc1647e97a`.
+
+The original real-data workflow verified exact upstream Git blob identities and completed successfully. Machine-readable raw validation evidence is in `results/findlay_camera_trap_real_data_v1.json`.
+
+A later frozen robustness workflow standardized reference and recorded worlds to the same CT-position distribution. Its summary is `results/FINDLAY_POSITION_STANDARDIZED_DISTORTION.md` and `results/findlay_position_standardized_distortion_summary_v1.json`.
 
 ## Why this system matters for REC
 
-BirdVox provided a continuous time-domain exposure denominator but used an intentionally simple annotation-naive score whose protected discrimination was poor. Findlay provides a complementary system: every row is an independently observed **true animal pass**, and the recording process is the real camera-trap chain studied by the original authors.
+Every released row is an independently observed **true animal pass** before camera-trap trigger/capture. For the fox/badger registration table:
 
-For the registration table:
+`CCTV-confirmed pass -> camera trigger R -> confirmed capture / usable record K`.
 
-`true pass -> camera trigger R -> capture / registered record K`.
+This directly identifies event-conditioned loss such as `P(R=0 | pass)` and bounded `P(K=0 | pass)`. It does **not** enumerate non-pass time, so continuous-time `q_shadow=P(event | no record)` is not identified and is intentionally not reported.
 
-This directly identifies event-conditioned loss such as `P(R=0 | pass)` and bounded `P(K=0 | pass)`. It does **not** enumerate non-pass time, so full-denominator `q_shadow=P(event | no record)` is not identified and is intentionally not reported.
-
-## REC-H1 — real record shadow: positive
+## H1 — real record shadow: positive
 
 Across 881 fox/badger passes:
 
@@ -25,56 +27,18 @@ Across 881 fox/badger passes:
 - partial-identification bounds for `a_K`: `0.800227–0.802497`;
 - conditional registration failure after an evaluable confirmed trigger: `0.591549`.
 
-Only two passes (`0.23%`) have unresolved CAPTURE, and they remain explicit dark mass rather than being recoded as failures.
+Only two passes (`0.23%`) have unresolved CAPTURE, and they remain explicit unresolved mass rather than being recoded as failures.
 
-The event-conditioned REC shadow is therefore not specific to the BirdVox score experiment: in an independently studied camera-trap process, substantial loss occurs both before trigger and between trigger and final capture.
+## H2/H3 primary endpoint — fox/badger species composition
 
-## REC-H2 — structured selection: positive
+### Raw composition shift
 
-Loss is strongly non-uniform across the pass and observation conditions represented in the released fox/badger table.
-
-The observed range in `a_R` across levels is:
-
-- distance: `0.507853`;
-- camera position: `0.316828`;
-- loitering: `0.196951`;
-- species: `0.167528`;
-- gait: `0.165709`;
-- orientation: `0.164520`.
-
-For final non-capture `a_K`, the largest resolved-only range is orientation (`0.457079`), followed by loitering (`0.283612`) and camera position (`0.219133`). These are descriptive condition maps, not row-level independent inferential tests.
-
-Species illustrates the structure directly:
-
-- badger: `a_R=0.406940`, resolved-only `a_K=0.733333`;
-- fox: `a_R=0.574468`, `a_K=0.840426`.
-
-Thus a scientific record produced by the same camera process does not preserve true passes uniformly across ecological categories.
-
-## Independent wet/dry mechanism check within otters
-
-The otter wet/dry trigger table contains 706 known pass-camera observations and again shows substantial trigger loss: resolved-only `a_R=0.390071` with bounds `0.389518–0.390935`.
-
-More importantly, wet passes are missed more often than dry passes in **all three camera types**:
-
-| camera | dry `a_R` | wet `a_R` | wet − dry |
-| --- | ---: | ---: | ---: |
-| A | 0.205882 | 0.622642 | +0.416759 |
-| BS | 0.322314 | 0.514563 | +0.192249 |
-| BV | 0.257576 | 0.514019 | +0.256443 |
-
-This provides a particularly clear real-world example of REC-H2: record entry depends on the state/condition of the biological encounter, not merely on whether the encounter occurred.
-
-## REC-H3 — ecological composition distortion: positive
-
-### Species composition
-
-In the true fox/badger pass world:
+In the true pass world:
 
 - badger proportion: `0.359818`;
 - fox proportion: `0.640182`.
 
-After trigger:
+After confirmed trigger:
 
 - badger: `0.439252`;
 - fox: `0.560748`.
@@ -84,46 +48,131 @@ Among confirmed captures:
 - badger: `0.482759`;
 - fox: `0.517241`.
 
-Total-variation distance from the true pass composition increases from `0.079434` at the trigger world to `0.122940` at the confirmed-capture world. Gait composition changes little at trigger (`TV=0.015965`) but substantially by confirmed capture (`TV=0.118785`).
+Total-variation distance from the reference pass composition is `0.079434` at trigger and `0.122940` at confirmed capture.
 
-### Wet/dry composition
+### CT-position-standardized robustness
 
-Because wet passes have higher trigger loss, the recorded world systematically underrepresents them in every camera type:
+A frozen follow-up tested whether this pooled shift was simply caused by changing representation of physical CT positions. Reference and recorded composition were standardized to the **same** position distribution using both equal-position and reference-pass weighting.
 
-- camera A: wet `0.438017` of true passes but `0.270270` of confirmed triggers (`TV=0.167746`);
-- camera BS: `0.459821 -> 0.378788` (`TV=0.081034`);
-- camera BV: `0.445833 -> 0.346667` (`TV=0.099167`).
+At trigger:
 
-This is the REC ecological consequence in a real sensor system: **selection before record entry changes the composition of the ecological world available to downstream analysis**.
+- equal-position standardized truth badger proportion: `0.367406`;
+- standardized recorded badger proportion: `0.429819`;
+- shift: `+0.062413`;
+- reference-pass-weighted shift: `+0.053498`;
+- positive direction in `3/4` positions.
 
-## Relation to BirdVox and TNOA
+At final capture:
 
-The two real systems now play different roles.
+- equal-position standardized truth: `0.367406`;
+- standardized recorded: `0.517249`;
+- shift: `+0.149843`;
+- reference-pass-weighted shift: `+0.139894`;
+- positive direction in `3/4` positions.
 
-**BirdVox** supplies the complete continuous exposure universe and directly demonstrates that upstream omission can almost erase a prespecified temporal ecological contrast even after granting a perfect downstream semantic stage.
+`SF` is the retained adverse position at both stages.
 
-**Findlay camera traps** show that event-conditioned trigger and registration shadows, structured by biological/observation conditions, occur in a real sensor process already studied independently of REC. The same mechanism changes species and wet/dry composition before downstream inference begins.
+### Interpretation
 
-Together they support the REC→TNOA decomposition:
+The fox/badger species-composition distortion therefore survives control of the aggregate CT-position mixture. This is now the strongest primary Findlay H2→H3 endpoint:
 
-`ecological exposure -> pre-entry selection [REC] -> recorded rows -> semantic/coarsening loss [TNOA]`.
+> **species-selective record entry changes the ecological composition available to downstream analysis within observation strata.**
 
-A perfect TNOA stage can improve the meaning of rows that exist; it cannot restore true encounters removed upstream.
+This is still a retrospective observational measurement result. CT positions are not independent animals or population replicates, and the analysis does not establish a causal species effect.
+
+## Otter wet/dry — useful but context dependent
+
+The otter table contains 706 pass-camera observations and again shows substantial trigger loss: resolved-only `a_R=0.390071`, with bounds `0.389518–0.390935`.
+
+### Raw pooled result
+
+Wet passes have greater pooled trigger loss than dry passes in each camera setting:
+
+| camera | dry `a_R` | wet `a_R` | wet − dry |
+| --- | ---: | ---: | ---: |
+| A | 0.205882 | 0.622642 | +0.416759 |
+| BS | 0.322314 | 0.514563 | +0.192249 |
+| BV | 0.257576 | 0.514019 | +0.256443 |
+
+Accordingly, pooled wet representation changes from reference pass world to triggered record world:
+
+- A: `0.438017 -> 0.270270`;
+- BS: `0.459821 -> 0.378788`;
+- BV: `0.445833 -> 0.346667`.
+
+### CT-position-standardized follow-up
+
+The later frozen robustness test shows that these pooled contrasts do not all have the same interpretation.
+
+**A** remains strongly position-robust:
+
+- equal-position standardized shift: `-0.126993`;
+- reference-pass-weighted shift: `-0.134821`;
+- negative direction in `4/4` positions.
+
+**BV** remains negative overall:
+
+- standardized shifts: `-0.046370` and `-0.052487`;
+- negative direction in `3/4` positions.
+
+**BS** does **not** retain the pooled wet-underrepresentation pattern:
+
+- equal-position standardized shift: `+0.003021`;
+- reference-pass-weighted shift: `+0.000893`;
+- negative vs positive direction split `2/4` vs `2/4` positions.
+
+### Revised interpretation
+
+The earlier statement that wet underrepresentation cleanly repeats across all three camera settings is too strong after standardization.
+
+The safe interpretation is:
+
+> **A and BV support a position-robust wet/dry entry mechanism, whereas BS is an aggregation-sensitive adverse case. The operating selection function itself can depend on observation context.**
+
+This mixed result directly motivates the later H5 transport tests.
+
+## Other structured entry dimensions
+
+The fox/badger table also shows large descriptive differences in event-conditioned loss across recorded pass/observation categories.
+
+Observed ranges in `a_R` include:
+
+- distance: `0.507853`;
+- camera position: `0.316828`;
+- loitering: `0.196951`;
+- species: `0.167528`;
+- gait: `0.165709`;
+- orientation: `0.164520`.
+
+For final non-capture `a_K`, the largest resolved-only ranges include orientation (`0.457079`), loitering (`0.283612`) and camera position (`0.219133`). These remain descriptive condition maps, not row-level independent inferential tests.
+
+## Relation to BirdVox and H5
+
+**BirdVox** provides the cross-modality irreversibility stress test: even oracle-perfect downstream semantics cannot restore truth-positive windows removed upstream.
+
+**Findlay** provides the physical-sensor estimand result: record entry changes species composition, with a position-standardized primary endpoint and an otter mechanism that explicitly reveals context dependence.
+
+**H5** then asks whether retained entry information can reduce the resulting composition error. Matched-context and species position-holdout analyses show partial recovery, while a frozen simultaneous camera+position shift shows that correction does not transport automatically.
+
+See:
+
+- `results/FINDLAY_H5_CORRECTION_RESULT.md`;
+- `results/FINDLAY_H5_TRANSPORT_BOUNDARY.md`;
+- `results/FINDLAY_SPECIES_POSITION_RECOVERY.md`.
 
 ## Positioning and hard boundaries
 
-Findlay, Briers and White explicitly studied component detection probabilities and false negatives. REC does **not** claim that camera-trap detection failure, or its dependence on distance/wetness/etc., is newly discovered here. The contribution is the cross-system framework and estimand decomposition that places those losses in the same pre-entry information-loss architecture as BirdVox and connects them formally to the downstream TNOA problem.
+Findlay, Briers and White explicitly studied component detection probabilities and false negatives. REC does **not** claim that camera-trap detection failure, or its dependence on distance/wetness/species/etc., is newly discovered.
+
+The paper-level contribution is the estimand-centered measurement chain:
+
+`external reference -> pre-entry selection -> changed ecological composition -> correction and transport test`.
 
 Do not claim from this dataset:
 
 - `q_shadow=P(event | no record)` over continuous time;
 - animal occurrence or abundance bias directly;
 - independence of every pass row as a biological replicate;
-- novelty of the original camera-trap detectability patterns.
-
-Safe status after this validation:
-
-- REC-H1: **positive across two distinct real observation systems**;
-- REC-H2: **positive real-world structured selection, with especially consistent wet > dry trigger loss across three camera types**;
-- REC-H3: **positive composition distortion in camera traps plus temporal-gradient destruction in BirdVox**;
-- REC/TNOA boundary: **empirically sharpened: downstream semantic perfection cannot restore upstream missing rows**.
+- universal wetness effects across all camera settings;
+- causal species-specific detectability;
+- novelty of the original Findlay false-negative patterns.
