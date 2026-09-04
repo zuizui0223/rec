@@ -1,0 +1,54 @@
+name: findlay-rec-position-standardization
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/findlay-position-standardization.yml'
+      - 'scripts/analyze_findlay_position_standardized_distortion.py'
+      - 'tests/test_findlay_position_standardized_distortion.py'
+      - 'PAPER_H2_H3_POSITION_STANDARDIZATION.md'
+  pull_request:
+    paths:
+      - '.github/workflows/findlay-position-standardization.yml'
+      - 'scripts/analyze_findlay_position_standardized_distortion.py'
+      - 'tests/test_findlay_position_standardized_distortion.py'
+      - 'PAPER_H2_H3_POSITION_STANDARDIZATION.md'
+  workflow_dispatch:
+
+jobs:
+  position-standardization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -p 'test_findlay_position_standardized_distortion.py' -v
+      - name: Download commit-pinned Findlay tables
+        run: |
+          set -euo pipefail
+          D=/tmp/findlay-std
+          mkdir -p "$D"
+          BASE='https://raw.githubusercontent.com/melaniefindlay/CT-Detection/abc72f535bb59ebed202fb7acca852fc1647e97a'
+          curl -L --fail --retry 3 "$BASE/REGISTRATION_FOX_BADGER.csv" -o "$D/REGISTRATION_FOX_BADGER.csv"
+          curl -L --fail --retry 3 "$BASE/TRIGGER_OTTER_WET.DRY.csv" -o "$D/TRIGGER_OTTER_WET.DRY.csv"
+      - name: Verify upstream Git blobs
+        run: |
+          test "$(git hash-object /tmp/findlay-std/REGISTRATION_FOX_BADGER.csv)" = 'd2dc9852ca1f2a1380b991acba425d16e12327d5'
+          test "$(git hash-object /tmp/findlay-std/TRIGGER_OTTER_WET.DRY.csv)" = '1f2fef008470ad1263d76beeb5be2b7006ff85aa'
+      - name: Run position-standardized distortion analysis
+        run: |
+          python scripts/analyze_findlay_position_standardized_distortion.py \
+            /tmp/findlay-std/REGISTRATION_FOX_BADGER.csv \
+            /tmp/findlay-std/TRIGGER_OTTER_WET.DRY.csv \
+            --output /tmp/findlay-std/findlay_position_standardized_distortion.json
+          cat /tmp/findlay-std/findlay_position_standardized_distortion.json
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: findlay-rec-position-standardization
+          if-no-files-found: error
+          retention-days: 14
+          path: /tmp/findlay-std/findlay_position_standardized_distortion.json
