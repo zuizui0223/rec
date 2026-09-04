@@ -7,6 +7,7 @@ on:
       - 'scripts/build_paper_figures_h1_h5.py'
       - 'results/findlay_camera_trap_real_data_v1.json'
       - 'results/findlay_position_standardized_distortion_summary_v1.json'
+      - 'results/birdvox_protected_02_05_real_data_v1.json'
       - 'results/findlay_h5_transport_boundary_v1.json'
       - 'results/findlay_species_position_recovery_summary_v1.json'
       - '.github/workflows/paper-figures-h1-h5.yml'
@@ -15,6 +16,7 @@ on:
       - 'scripts/build_paper_figures_h1_h5.py'
       - 'results/findlay_camera_trap_real_data_v1.json'
       - 'results/findlay_position_standardized_distortion_summary_v1.json'
+      - 'results/birdvox_protected_02_05_real_data_v1.json'
       - 'results/findlay_h5_transport_boundary_v1.json'
       - 'results/findlay_species_position_recovery_summary_v1.json'
       - '.github/workflows/paper-figures-h1-h5.yml'
@@ -35,9 +37,11 @@ jobs:
       - name: Build figures from committed evidence
         run: |
           python scripts/build_paper_figures_h1_h5.py --output-dir /tmp/rec-paper-figures
+          test -s /tmp/rec-paper-figures/fig1_auditable_record_entry_pipeline.png
           test -s /tmp/rec-paper-figures/fig2a_badger_composition.png
           test -s /tmp/rec-paper-figures/fig2b_position_standardized_badger.png
           test -s /tmp/rec-paper-figures/fig2c_otter_position_standardization.png
+          test -s /tmp/rec-paper-figures/fig3_birdvox_irreversibility.png
           test -s /tmp/rec-paper-figures/fig4_recovery_transport_ladder.png
           test -s /tmp/rec-paper-figures/fig4b_sham_controls.png
       - name: Upload manuscript figure artifact
