@@ -1,0 +1,186 @@
+{
+  "REC_H5_recoverability": {
+    "interpretation": "A selection-aware correction learned from other camera types is useful only if it improves held-out camera composition without using that camera's trigger outcomes to estimate its propensity.",
+    "supported_retrospectively": true
+  },
+  "aggregate": {
+    "all_cameras_improved": true,
+    "camera_count": 3,
+    "cameras_improved": 3,
+    "mean_absolute_error_cross_camera_ipw": 0.059257618905043996,
+    "mean_absolute_error_raw_trigger_world": 0.11598215836852199,
+    "mean_absolute_error_reduction": 0.056724539463477996,
+    "relative_mean_absolute_error_reduction": 0.4890798745376104
+  },
+  "correction": "self-normalized inverse-probability weighting of held-out confirmed-trigger records; wet/dry trigger propensities are estimated only from the other camera types",
+  "estimand": "wet proportion among independently observed otter passes",
+  "governance_boundary": "This is a retrospective cross-camera transport test on public outcomes already available before the REC-H5 analysis was designed. It is evidence that REC-style entry information can improve a downstream composition estimate, not a protected confirmatory correction trial. Trigger-reference-unresolved rows are never recoded as failures; point propensities are resolved-only and an uncertainty envelope is reported.",
+  "leave_one_camera_out": [
+    {
+      "absolute_error_corrected": 0.08631075592657445,
+      "absolute_error_improvement": 0.08143550272877509,
+      "absolute_error_raw": 0.16774625865534953,
+      "cross_camera_ipw_wet_proportion": 0.3517057729990454,
+      "cross_camera_ipw_wet_proportion_unresolved_training_bounds": {
+        "lower": 0.35080685576826703,
+        "upper": 0.3520696247554686
+      },
+      "heldout_camera": "A",
+      "heldout_pass_counts": {
+        "dry": {
+          "passes": 136,
+          "resolved": 136,
+          "triggered": 108,
+          "unresolved": 0
+        },
+        "wet": {
+          "passes": 106,
+          "resolved": 106,
+          "triggered": 40,
+          "unresolved": 0
+        }
+      },
+      "heldout_trigger_reference_unresolved_fraction": 0.0,
+      "improved": true,
+      "raw_trigger_world_wet_proportion": 0.2702702702702703,
+      "training_cameras": [
+        "BS",
+        "BV"
+      ],
+      "training_trigger_propensities": {
+        "dry": {
+          "passes": 254,
+          "reference_unresolved_fraction": 0.003937007874015748,
+          "resolved": 253,
+          "trigger_probability_lower": 0.7086614173228346,
+          "trigger_probability_resolved_only": 0.7114624505928854,
+          "trigger_probability_upper": 0.7125984251968503,
+          "triggered": 180,
+          "unresolved": 1
+        },
+        "wet": {
+          "passes": 210,
+          "reference_unresolved_fraction": 0.0,
+          "resolved": 210,
+          "trigger_probability_lower": 0.4857142857142857,
+          "trigger_probability_resolved_only": 0.4857142857142857,
+          "trigger_probability_upper": 0.4857142857142857,
+          "triggered": 102,
+          "unresolved": 0
+        }
+      },
+      "truth_wet_pass_proportion": 0.4380165289256198
+    },
+    {
+      "absolute_error_corrected": 0.060591353007491355,
+      "absolute_error_improvement": 0.020442196776058408,
+      "absolute_error_raw": 0.08103354978354976,
+      "cross_camera_ipw_wet_proportion": 0.5204127815789199,
+      "cross_camera_ipw_wet_proportion_unresolved_training_bounds": {
+        "lower": 0.5194831640950209,
+        "upper": 0.5206918655816429
+      },
+      "heldout_camera": "BS",
+      "heldout_pass_counts": {
+        "dry": {
+          "passes": 121,
+          "resolved": 121,
+          "triggered": 82,
+          "unresolved": 0
+        },
+        "wet": {
+          "passes": 103,
+          "resolved": 103,
+          "triggered": 50,
+          "unresolved": 0
+        }
+      },
+      "heldout_trigger_reference_unresolved_fraction": 0.0,
+      "improved": true,
+      "raw_trigger_world_wet_proportion": 0.3787878787878788,
+      "training_cameras": [
+        "A",
+        "BV"
+      ],
+      "training_trigger_propensities": {
+        "dry": {
+          "passes": 269,
+          "reference_unresolved_fraction": 0.0037174721189591076,
+          "resolved": 268,
+          "trigger_probability_lower": 0.7657992565055762,
+          "trigger_probability_resolved_only": 0.7686567164179104,
+          "trigger_probability_upper": 0.7695167286245354,
+          "triggered": 206,
+          "unresolved": 1
+        },
+        "wet": {
+          "passes": 213,
+          "reference_unresolved_fraction": 0.0,
+          "resolved": 213,
+          "trigger_probability_lower": 0.431924882629108,
+          "trigger_probability_resolved_only": 0.431924882629108,
+          "trigger_probability_upper": 0.431924882629108,
+          "triggered": 92,
+          "unresolved": 0
+        }
+      },
+      "truth_wet_pass_proportion": 0.45982142857142855
+    },
+    {
+      "absolute_error_corrected": 0.030870747781066188,
+      "absolute_error_improvement": 0.06829591888560049,
+      "absolute_error_raw": 0.09916666666666668,
+      "cross_camera_ipw_wet_proportion": 0.47670408111439955,
+      "cross_camera_ipw_wet_proportion_unresolved_training_bounds": {
+        "lower": 0.47670408111439955,
+        "upper": 0.47670408111439955
+      },
+      "heldout_camera": "BV",
+      "heldout_pass_counts": {
+        "dry": {
+          "passes": 133,
+          "resolved": 132,
+          "triggered": 98,
+          "unresolved": 1
+        },
+        "wet": {
+          "passes": 107,
+          "resolved": 107,
+          "triggered": 52,
+          "unresolved": 0
+        }
+      },
+      "heldout_trigger_reference_unresolved_fraction": 0.004166666666666667,
+      "improved": true,
+      "raw_trigger_world_wet_proportion": 0.3466666666666667,
+      "training_cameras": [
+        "A",
+        "BS"
+      ],
+      "training_trigger_propensities": {
+        "dry": {
+          "passes": 257,
+          "reference_unresolved_fraction": 0.0,
+          "resolved": 257,
+          "trigger_probability_lower": 0.7392996108949417,
+          "trigger_probability_resolved_only": 0.7392996108949417,
+          "trigger_probability_upper": 0.7392996108949417,
+          "triggered": 190,
+          "unresolved": 0
+        },
+        "wet": {
+          "passes": 209,
+          "reference_unresolved_fraction": 0.0,
+          "resolved": 209,
+          "trigger_probability_lower": 0.430622009569378,
+          "trigger_probability_resolved_only": 0.430622009569378,
+          "trigger_probability_upper": 0.430622009569378,
+          "triggered": 90,
+          "unresolved": 0
+        }
+      },
+      "truth_wet_pass_proportion": 0.44583333333333336
+    }
+  ],
+  "schema": "rec-findlay-h5-cross-camera-correction-v1"
+}
