@@ -1,0 +1,48 @@
+name: findlay-rec-h5-correction
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/findlay-h5-correction.yml'
+      - 'scripts/analyze_findlay_h5_correction.py'
+      - 'tests/test_findlay_h5_correction.py'
+      - 'results/FINDLAY_H5_CORRECTION_RESULT.md'
+      - 'results/findlay_h5_correction_v1.json'
+  workflow_dispatch:
+
+jobs:
+  h5-correction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download commit-pinned Findlay wet/dry table
+        run: |
+          set -euo pipefail
+          D=/tmp/findlay-h5
+          mkdir -p "$D"
+          URL='https://raw.githubusercontent.com/melaniefindlay/CT-Detection/abc72f535bb59ebed202fb7acca852fc1647e97a/TRIGGER_OTTER_WET.DRY.csv'
+          curl -L --fail --retry 3 "$URL" -o "$D/TRIGGER_OTTER_WET.DRY.csv"
+
+      - name: Verify exact upstream Git blob identity
+        run: |
+          test "$(git hash-object /tmp/findlay-h5/TRIGGER_OTTER_WET.DRY.csv)" = '1f2fef008470ad1263d76beeb5be2b7006ff85aa'
+
+      - name: Run retrospective leave-one-camera-out correction
+        run: |
+          python scripts/analyze_findlay_h5_correction.py \
+            /tmp/findlay-h5/TRIGGER_OTTER_WET.DRY.csv \
+            --output /tmp/findlay-h5/findlay_h5_correction.json
+          cat /tmp/findlay-h5/findlay_h5_correction.json
+
+      - name: Upload inspectable correction result
+        uses: actions/upload-artifact@v4
+        with:
+          name: findlay-rec-h5-correction
+          if-no-files-found: error
+          retention-days: 14
+          path: /tmp/findlay-h5/findlay_h5_correction.json
