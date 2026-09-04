@@ -1,0 +1,34 @@
+{
+  "schema": "rec-findlay-species-position-recovery-summary-v1",
+  "source": {
+    "repository": "melaniefindlay/CT-Detection",
+    "commit": "abc72f535bb59ebed202fb7acca852fc1647e97a",
+    "file": "REGISTRATION_FOX_BADGER.csv",
+    "git_blob": "d2dc9852ca1f2a1380b991acba425d16e12327d5"
+  },
+  "estimand": "badger proportion among CCTV-confirmed fox/badger passes in held-out CT positions",
+  "design": "leave-one-CT-position-out species-specific entry correction within the same Bushnell-video system",
+  "trigger_stage": {
+    "mean_absolute_error_raw": 0.12309309833936907,
+    "mean_absolute_error_correct": 0.09050959443613948,
+    "mean_absolute_error_sham": 0.15021814297718172,
+    "relative_error_reduction": 0.2647061804667269,
+    "positions_improved": 3,
+    "position_count": 4,
+    "positions_beating_sham": 3
+  },
+  "final_capture_stage": {
+    "mean_absolute_error_raw": 0.21080704981432785,
+    "mean_absolute_error_correct": 0.16797221731720313,
+    "mean_absolute_error_sham": 0.26019825580745715,
+    "relative_error_reduction": 0.20319449721843874,
+    "positions_improved": 3,
+    "position_count": 4,
+    "positions_beating_sham": 3,
+    "mean_worst_case_error_correct_under_unresolved_training": 0.16942329688999935
+  },
+  "adverse_position": "SF",
+  "conclusion": "Partial entry-aware recovery extends to a second ecological composition endpoint, but spatial transport remains heterogeneous and is not universal.",
+  "workflow_run": 33834062924,
+  "artifact_sha256": "61383744ec7babac2327a3c391717ec95b81e56d0fcb31172265a37d2c610692"
+}
