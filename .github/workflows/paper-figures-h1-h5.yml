@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/build_paper_figures_h1_h5.py'
       - 'scripts/polish_fig1_fig3_h1_h5.py'
+      - 'scripts/polish_fig4_h1_h5.py'
       - 'results/findlay_camera_trap_real_data_v1.json'
       - 'results/findlay_position_standardized_distortion_summary_v1.json'
       - 'results/birdvox_protected_02_05_real_data_v1.json'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'scripts/build_paper_figures_h1_h5.py'
       - 'scripts/polish_fig1_fig3_h1_h5.py'
+      - 'scripts/polish_fig4_h1_h5.py'
       - 'results/findlay_camera_trap_real_data_v1.json'
       - 'results/findlay_position_standardized_distortion_summary_v1.json'
       - 'results/birdvox_protected_02_05_real_data_v1.json'
@@ -38,10 +40,12 @@ jobs:
         run: |
           python -m py_compile scripts/build_paper_figures_h1_h5.py
           python -m py_compile scripts/polish_fig1_fig3_h1_h5.py
+          python -m py_compile scripts/polish_fig4_h1_h5.py
       - name: Build figures from committed evidence
         run: |
           python scripts/build_paper_figures_h1_h5.py --output-dir /tmp/rec-paper-figures
           python scripts/polish_fig1_fig3_h1_h5.py --output-dir /tmp/rec-paper-figures
+          python scripts/polish_fig4_h1_h5.py --output-dir /tmp/rec-paper-figures
           test -s /tmp/rec-paper-figures/fig1_auditable_record_entry_pipeline.png
           test -s /tmp/rec-paper-figures/fig2a_badger_composition.png
           test -s /tmp/rec-paper-figures/fig2b_position_standardized_badger.png
