@@ -1,0 +1,57 @@
+name: findlay-rec-h5-double-holdout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/findlay-h5-double-holdout.yml'
+      - 'scripts/analyze_findlay_h5_double_holdout.py'
+      - 'tests/test_findlay_h5_double_holdout.py'
+      - 'PAPER_LOGIC_H1_H5.md'
+  pull_request:
+    paths:
+      - '.github/workflows/findlay-h5-double-holdout.yml'
+      - 'scripts/analyze_findlay_h5_double_holdout.py'
+      - 'tests/test_findlay_h5_double_holdout.py'
+      - 'PAPER_LOGIC_H1_H5.md'
+  workflow_dispatch:
+
+jobs:
+  double-holdout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run unit tests for double-holdout logic
+        run: python -m unittest discover -s tests -p 'test_findlay_h5_double_holdout.py' -v
+
+      - name: Download commit-pinned Findlay wet/dry table
+        run: |
+          set -euo pipefail
+          D=/tmp/findlay-h5-double
+          mkdir -p "$D"
+          URL='https://raw.githubusercontent.com/melaniefindlay/CT-Detection/abc72f535bb59ebed202fb7acca852fc1647e97a/TRIGGER_OTTER_WET.DRY.csv'
+          curl -L --fail --retry 3 "$URL" -o "$D/TRIGGER_OTTER_WET.DRY.csv"
+
+      - name: Verify exact upstream Git blob identity
+        run: |
+          test "$(git hash-object /tmp/findlay-h5-double/TRIGGER_OTTER_WET.DRY.csv)" = '1f2fef008470ad1263d76beeb5be2b7006ff85aa'
+
+      - name: Run double-holdout and sham robustness analysis
+        run: |
+          python scripts/analyze_findlay_h5_double_holdout.py \
+            /tmp/findlay-h5-double/TRIGGER_OTTER_WET.DRY.csv \
+            --output /tmp/findlay-h5-double/findlay_h5_double_holdout.json
+          cat /tmp/findlay-h5-double/findlay_h5_double_holdout.json
+
+      - name: Upload inspectable robustness result
+        uses: actions/upload-artifact@v4
+        with:
+          name: findlay-rec-h5-double-holdout
+          if-no-files-found: error
+          retention-days: 14
+          path: /tmp/findlay-h5-double/findlay_h5_double_holdout.json
