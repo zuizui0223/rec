@@ -1,0 +1,52 @@
+{
+  "schema": "rec-findlay-h5-transport-boundary-v1",
+  "source": {
+    "repository": "melaniefindlay/CT-Detection",
+    "commit": "abc72f535bb59ebed202fb7acca852fc1647e97a",
+    "file": "TRIGGER_OTTER_WET.DRY.csv",
+    "git_blob": "1f2fef008470ad1263d76beeb5be2b7006ff85aa"
+  },
+  "matched_context_camera_holdout": {
+    "status": "positive_retrospective",
+    "mean_absolute_error_raw": 0.115982158368522,
+    "mean_absolute_error_correct": 0.059257618905044,
+    "relative_error_reduction": 0.4890798745376104,
+    "heldout_cameras_improved": "3/3",
+    "interpretation": "hardware-transport demonstration with the same overall observation context represented in training"
+  },
+  "position_holdout_within_camera": {
+    "status": "weak_mixed_exploratory",
+    "mean_absolute_error_raw": 0.0682160609984697,
+    "mean_absolute_error_correct": 0.06425029704353319,
+    "mean_absolute_error_sham": 0.15027762711295403,
+    "relative_error_reduction": 0.058135340811095504,
+    "cells_improved": "6/12",
+    "cells_beating_sham": "8/12",
+    "interpretation": "small average improvement but not robust by camera or position"
+  },
+  "double_holdout_camera_and_position": {
+    "status": "adverse_frozen_robustness",
+    "mean_absolute_error_raw": 0.0682160609984697,
+    "mean_absolute_error_correct": 0.0812372947449914,
+    "mean_absolute_error_sham": 0.15365224505246222,
+    "relative_error_change_correct_vs_raw": 0.19088222855338724,
+    "cells_improved": "6/12",
+    "cells_beating_sham": "8/12",
+    "mean_worst_case_error_correct_under_unresolved_training": 0.08145697334010168,
+    "frozen_promotion_rule_met": false,
+    "by_camera": {
+      "A": {"raw": 0.12699332263966626, "correct": 0.053218747606942854, "sham": 0.19944552251913814},
+      "BS": {"raw": 0.022881154168880532, "correct": 0.11035756020135894, "sham": 0.11008755437425516},
+      "BV": {"raw": 0.054773706186862295, "correct": 0.08013557642667239, "sham": 0.15142365826399337}
+    },
+    "by_position": {
+      "A": {"raw": 0.07431486510456166, "correct": 0.08349946485222455, "sham": 0.22380276515716316},
+      "BL": {"raw": 0.026001511715797426, "correct": 0.020342570376613824, "sham": 0.029934588989266375},
+      "BW": {"raw": 0.0729423082364259, "correct": 0.12237459338525458, "sham": 0.15835529050041855},
+      "C": {"raw": 0.09960555893709379, "correct": 0.09873255036587263, "sham": 0.20251633556300078}
+    }
+  },
+  "conclusion": "Entry-aware correction is partially recoverable under matched calibration context but simple wet/dry propensities are not invariant across simultaneous camera and physical-position changes. Calibration provenance and transport domain are therefore part of the measurement contract.",
+  "workflow_run": 33833692837,
+  "artifact_sha256": "8b83ffe4676afc19d3ec1f0f674dd4f60e8baed68af443942810f605c076da10"
+}
