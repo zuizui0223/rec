@@ -1,0 +1,67 @@
+{
+  "schema": "rec-findlay-position-standardized-distortion-summary-v1",
+  "source_workflow_run": 33834478272,
+  "source_artifact_digest": "sha256:397c6e7edba906173f7d6738071a6785c4079115cc35d636487ec4896325d1b7",
+  "purpose": "Test whether pooled ecological composition shifts remain after reference and recorded worlds are standardized to the same CT-position distribution.",
+  "promotion_rule": {
+    "all_frozen_criteria_met": false,
+    "fox_badger_trigger_and_capture_positive_under_both_weightings": true,
+    "otter_all_camera_settings_negative_under_both_weightings": false
+  },
+  "fox_badger": {
+    "focal_group": "BADGER",
+    "trigger": {
+      "positions": 4,
+      "positions_positive": 3,
+      "equal_position_weighting": {
+        "truth_focal_proportion": 0.367406207407288,
+        "recorded_focal_proportion": 0.42981903363781354,
+        "shift_recorded_minus_truth": 0.06241282623052552
+      },
+      "reference_pass_weighting": {
+        "truth_focal_proportion": 0.3598183881952327,
+        "recorded_focal_proportion": 0.41331633314719907,
+        "shift_recorded_minus_truth": 0.05349794495196636
+      }
+    },
+    "capture": {
+      "positions": 4,
+      "positions_positive": 3,
+      "equal_position_weighting": {
+        "truth_focal_proportion": 0.367406207407288,
+        "recorded_focal_proportion": 0.51724929716951,
+        "shift_recorded_minus_truth": 0.14984308976222194
+      },
+      "reference_pass_weighting": {
+        "truth_focal_proportion": 0.3598183881952327,
+        "recorded_focal_proportion": 0.49971200702961033,
+        "shift_recorded_minus_truth": 0.13989361883437762
+      }
+    }
+  },
+  "otter_wet_dry_trigger": {
+    "A": {
+      "positions": 4,
+      "positions_negative": 4,
+      "equal_position_shift": -0.12699332263966628,
+      "reference_pass_weighted_shift": -0.13482069320100332,
+      "position_robust_negative": true
+    },
+    "BS": {
+      "positions": 4,
+      "positions_negative": 2,
+      "equal_position_shift": 0.0030207217329953906,
+      "reference_pass_weighted_shift": 0.0008928571428571397,
+      "position_robust_negative": false
+    },
+    "BV": {
+      "positions": 4,
+      "positions_negative": 3,
+      "equal_position_shift": -0.04637034484232444,
+      "reference_pass_weighted_shift": -0.05248650184711562,
+      "position_robust_negative": true
+    }
+  },
+  "interpretation": "Fox/badger species composition distortion survives CT-position standardization at trigger and final capture. Otter wet underrepresentation survives for A and BV but not BS, so the pooled BS contrast is aggregation/context sensitive.",
+  "governance_boundary": "CT positions are observation strata, not independent animals or population replicates. This robustness analysis is retrospective and does not establish causal species or wetness effects."
+}
