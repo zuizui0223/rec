@@ -1,0 +1,49 @@
+name: rec-paper-figures-h1-h5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_paper_figures_h1_h5.py'
+      - 'results/findlay_camera_trap_real_data_v1.json'
+      - 'results/findlay_position_standardized_distortion_summary_v1.json'
+      - 'results/findlay_h5_transport_boundary_v1.json'
+      - 'results/findlay_species_position_recovery_summary_v1.json'
+      - '.github/workflows/paper-figures-h1-h5.yml'
+  pull_request:
+    paths:
+      - 'scripts/build_paper_figures_h1_h5.py'
+      - 'results/findlay_camera_trap_real_data_v1.json'
+      - 'results/findlay_position_standardized_distortion_summary_v1.json'
+      - 'results/findlay_h5_transport_boundary_v1.json'
+      - 'results/findlay_species_position_recovery_summary_v1.json'
+      - '.github/workflows/paper-figures-h1-h5.yml'
+  workflow_dispatch:
+
+jobs:
+  figures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install plotting dependency
+        run: python -m pip install --quiet 'matplotlib>=3.8,<4'
+      - name: Compile-check figure builder
+        run: python -m py_compile scripts/build_paper_figures_h1_h5.py
+      - name: Build figures from committed evidence
+        run: |
+          python scripts/build_paper_figures_h1_h5.py --output-dir /tmp/rec-paper-figures
+          test -s /tmp/rec-paper-figures/fig2a_badger_composition.png
+          test -s /tmp/rec-paper-figures/fig2b_position_standardized_badger.png
+          test -s /tmp/rec-paper-figures/fig2c_otter_position_standardization.png
+          test -s /tmp/rec-paper-figures/fig4_recovery_transport_ladder.png
+          test -s /tmp/rec-paper-figures/fig4b_sham_controls.png
+      - name: Upload manuscript figure artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rec-h1-h5-paper-figures
+          path: /tmp/rec-paper-figures/
+          retention-days: 30
+          if-no-files-found: error
