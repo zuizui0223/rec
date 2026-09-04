@@ -1,0 +1,54 @@
+name: findlay-rec-species-position-recovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/findlay-species-position-recovery.yml'
+      - 'scripts/analyze_findlay_species_position_recovery.py'
+      - 'tests/test_findlay_species_position_recovery.py'
+  pull_request:
+    paths:
+      - '.github/workflows/findlay-species-position-recovery.yml'
+      - 'scripts/analyze_findlay_species_position_recovery.py'
+      - 'tests/test_findlay_species_position_recovery.py'
+  workflow_dispatch:
+
+jobs:
+  species-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run species recovery unit tests
+        run: python -m unittest discover -s tests -p 'test_findlay_species_position_recovery.py' -v
+
+      - name: Download commit-pinned fox/badger table
+        run: |
+          set -euo pipefail
+          D=/tmp/findlay-species
+          mkdir -p "$D"
+          URL='https://raw.githubusercontent.com/melaniefindlay/CT-Detection/abc72f535bb59ebed202fb7acca852fc1647e97a/REGISTRATION_FOX_BADGER.csv'
+          curl -L --fail --retry 3 "$URL" -o "$D/REGISTRATION_FOX_BADGER.csv"
+
+      - name: Verify exact upstream Git blob identity
+        run: |
+          test "$(git hash-object /tmp/findlay-species/REGISTRATION_FOX_BADGER.csv)" = 'd2dc9852ca1f2a1380b991acba425d16e12327d5'
+
+      - name: Run leave-one-position species recovery analysis
+        run: |
+          python scripts/analyze_findlay_species_position_recovery.py \
+            /tmp/findlay-species/REGISTRATION_FOX_BADGER.csv \
+            --output /tmp/findlay-species/findlay_species_position_recovery.json
+          cat /tmp/findlay-species/findlay_species_position_recovery.json
+
+      - name: Upload inspectable result
+        uses: actions/upload-artifact@v4
+        with:
+          name: findlay-rec-species-position-recovery
+          if-no-files-found: error
+          retention-days: 14
+          path: /tmp/findlay-species/findlay_species_position_recovery.json
