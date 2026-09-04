@@ -1,0 +1,16 @@
+{
+  "schema": "rec-pollipi-development-collection-v1",
+  "collection_id": "dev-YYYYMMDD-site-scene-block",
+  "prospective_role": "development",
+  "recording_day": "YYYY-MM-DD",
+  "focal_scene_id": "scene-id",
+  "recording_block": "block-id",
+  "reference_source_id": "independent-reference-camera-id",
+  "independent_reference_expected": true,
+  "independent_reference_recorded": false,
+  "primary_device_id": "pollipi-device-id",
+  "site_id": "site-id",
+  "flower_id": "flower-id",
+  "comparison_session_id": "comparison-session-id",
+  "notes": "Fill this before starting the primary recording. Change independent_reference_recorded to true only after the synchronized reference material is safely archived."
+}
