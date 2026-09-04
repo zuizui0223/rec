@@ -6,16 +6,17 @@ Do not add new retrospective Findlay biological hypotheses unless required to an
 
 ## Canonical files
 
-### Scientific logic
+### Scientific logic and reusable method
 
 - `PAPER_LOGIC_H1_H5_V4.md` — canonical result hierarchy and claim boundaries.
 - `PAPER_METHOD_CONTRACT_H1_H5.md` — reusable record-entry audit method.
 - `TABLE1_METHOD_REQUIREMENTS_H1_H5.md` — paper-facing minimum-information table.
 
-### Manuscript
+### Manuscript and figures
 
 - `MANUSCRIPT_DRAFT_H1_H5_V2.md` — current citation-aware manuscript draft.
 - `FIGURE_CAPTIONS_H1_H5.md` — current main/supplement caption draft.
+- `PAPER_FIGURE_RELEASE_H1_H5.md` — visual-QA-passed manuscript figure artifact and digest.
 - `LITERATURE_POSITIONING_H1_H5.md` — nearest-neighbour positioning.
 
 ### Submission preparation
@@ -23,7 +24,10 @@ Do not add new retrospective Findlay biological hypotheses unless required to an
 - `SUBMISSION_STRATEGY_H1_H5.md` — MEE high-reward route versus Ecological Informatics natural-fit route.
 - `SUBMISSION_CHECKLIST_H1_H5.md` — current submission blockers and formatting tasks.
 - `REVIEWER_ATTACK_MATRIX_H1_H5.md` — pre-submission reviewer pre-mortem.
-- `PAPER_FIGURE_RELEASE_H1_H5.md` — frozen manuscript figure artifact and digest.
+- `MEE_PRESUBMISSION_ENQUIRY_DRAFT.md` — editor-facing fit enquiry.
+- `MEE_SUBMISSION_TEXT_H1_H5.md` — 325-word numbered abstract, keywords and Data/Code templates.
+- `THIRD_PARTY_DATA_RIGHTS_H1_H5.md` — BirdVox clear / Findlay permission clarification pending.
+- `FINDLAY_REUSE_PERMISSION_REQUEST_DRAFT.md` — source-data permission request template.
 
 ## Main scientific message
 
@@ -90,12 +94,22 @@ Latest visual-QA-passed figure artifact is documented in `PAPER_FIGURE_RELEASE_H
 Scientific content is ready enough for a **pre-submission enquiry**, but full submission is on hold pending:
 
 1. positive/acceptable editorial fit response or acceptance of desk-rejection risk;
-2. explicit open-source repository license selection;
-3. numbered MEE abstract, Data/Code statement, title page and final word-count formatting.
+2. explicit open-source REC software licence selection;
+3. written Findlay source-data reuse/licence clarification;
+4. permanent archive/DOI planning;
+5. final author/title-page/contribution fields and whole-manuscript word count.
+
+The MEE numbered abstract and Data/Code templates are already prepared in `MEE_SUBMISSION_TEXT_H1_H5.md`.
 
 ### Ecological Informatics
 
-Strong natural sensor/data-science fit. Manuscript is close to submission-ready once normal formatting, code license and data/code availability material are completed.
+Strong natural sensor/data-science fit. Manuscript is close to submission-ready once software licence, Findlay data permission and normal title-page/data-availability formatting are completed.
+
+## Data-rights status
+
+- BirdVox-full-night: explicit **CC BY 4.0** reuse licence.
+- Findlay `CT-Detection`: public repository but no repository licence detected; written reuse/licence clarification recommended before journal submission.
+- REC code: no root software `LICENSE` yet; licence choice requires explicit author decision.
 
 ## Explicitly open future work
 
