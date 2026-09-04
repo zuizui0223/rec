@@ -111,8 +111,8 @@ The paper-level H5 conclusion is therefore:
 See:
 
 - `results/FINDLAY_H5_CORRECTION_RESULT.md`;
-- `results/FINDLAY_H5_DOUBLE_HOLDOUT_RESULT.md`;
-- `results/FINDLAY_SPECIES_POSITION_RECOVERY_RESULT.md`.
+- `results/FINDLAY_H5_TRANSPORT_BOUNDARY.md`;
+- `results/FINDLAY_SPECIES_POSITION_RECOVERY.md`.
 
 ## Core measurement distinction
 
@@ -207,8 +207,8 @@ A final event table alone discards exactly the information required to determine
 - `results/FINDLAY_CAMERA_TRAP_RESULT.md`;
 - `results/FINDLAY_POSITION_STANDARDIZED_DISTORTION.md`;
 - `results/FINDLAY_H5_CORRECTION_RESULT.md`;
-- `results/FINDLAY_H5_DOUBLE_HOLDOUT_RESULT.md`;
-- `results/FINDLAY_SPECIES_POSITION_RECOVERY_RESULT.md`;
+- `results/FINDLAY_H5_TRANSPORT_BOUNDARY.md`;
+- `results/FINDLAY_SPECIES_POSITION_RECOVERY.md`;
 - `results/BIRDVOX_PROTECTED_02_05_RESULT.md`.
 
 ### Prospective REC→TNOA
