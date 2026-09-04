@@ -46,23 +46,29 @@ def main() -> None:
 
     y = list(range(len(labels)))
     height = 0.34
-    fig, ax = plt.subplots(figsize=(8.8, 5.5))
+    fig, ax = plt.subplots(figsize=(8.8, 5.8))
     ax.barh([v + height / 2 for v in y], raw, height=height, label="Raw record")
     ax.barh([v - height / 2 for v in y], correct, height=height, label="Entry-aware correction")
     ax.set_yticks(y, labels)
     ax.invert_yaxis()
+    ax.set_xlim(0, 0.25)
     ax.set_xlabel("Mean absolute composition error")
     ax.set_title("Correction helps within some calibration domains but not all", fontsize=11)
-    ax.legend(loc="lower right")
 
     for i, (r, c) in enumerate(zip(raw, correct)):
         change = (c - r) / r * 100 if r > 0 else 0.0
         ax.text(max(r, c) + 0.004, i, f"{change:+.1f}%", va="center", fontsize=8)
 
-    fig.subplots_adjust(left=0.35, bottom=0.16, right=0.95, top=0.90)
+    fig.subplots_adjust(left=0.35, bottom=0.24, right=0.96, top=0.90)
+    fig.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.62, 0.105),
+        ncol=2,
+        frameon=False,
+    )
     fig.text(
         0.35,
-        0.055,
+        0.035,
         "*Exploratory diagnostic run after the frozen camera+position transport test; all other rows are pre-existing frozen/retrospective evaluations.",
         ha="left",
         fontsize=7.5,
