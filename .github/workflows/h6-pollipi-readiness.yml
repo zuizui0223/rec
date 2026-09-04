@@ -1,0 +1,50 @@
+name: h6-pollipi-readiness
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/h6-pollipi-readiness.yml'
+      - 'H6_SAME_SYSTEM_CONTRACT.md'
+      - 'scripts/check_h6_readiness.py'
+      - 'tests/test_h6_readiness.py'
+      - 'results/H6_POLLIPI_READINESS_AUDIT.md'
+      - 'results/h6_pollipi_readiness_audit_v1.json'
+  workflow_dispatch:
+
+jobs:
+  audit-current-pollipi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download pinned PolliPi field-calibration manifest
+        run: |
+          set -euo pipefail
+          D=/tmp/h6-pollipi
+          mkdir -p "$D"
+          URL='https://raw.githubusercontent.com/zuizui0223/pollipi/88630139953ff28f0396a4a80f54cf4087fb0f25/calibration/tnoa_field_calibration_unfrozen_v1.json'
+          curl -L --fail --retry 3 "$URL" -o "$D/tnoa_field_calibration_unfrozen_v1.json"
+
+      - name: Verify pinned PolliPi manifest blob
+        run: |
+          test "$(git hash-object /tmp/h6-pollipi/tnoa_field_calibration_unfrozen_v1.json)" = '12b12cf3aec2e58de9574b5c2fc5a9d5022d2508'
+
+      - name: Verify current PolliPi correctly fails H6 readiness
+        run: |
+          python scripts/check_h6_readiness.py \
+            /tmp/h6-pollipi/tnoa_field_calibration_unfrozen_v1.json \
+            --expect-not-ready \
+            --output /tmp/h6-pollipi/h6_pollipi_readiness_audit.json
+          cat /tmp/h6-pollipi/h6_pollipi_readiness_audit.json
+
+      - name: Upload inspectable readiness audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: h6-pollipi-readiness-audit
+          if-no-files-found: error
+          retention-days: 14
+          path: /tmp/h6-pollipi/h6_pollipi_readiness_audit.json

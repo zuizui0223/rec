@@ -1,0 +1,55 @@
+{
+  "checks": {
+    "double_annotation_fraction_valid": true,
+    "frozen_field_calibration": false,
+    "grouped_split_declared": true,
+    "heldout_scoring_allowed": false,
+    "independent_reference_truth_required": true,
+    "nuisance_error_criterion_frozen": false,
+    "nuisance_families_declared": true,
+    "observability_observable_thresholds_frozen": false,
+    "observability_support_rule_frozen": false,
+    "observability_unobservable_thresholds_frozen": false,
+    "schema_known": true,
+    "source_log_schema_declared": true,
+    "source_observation_schema_declared": true,
+    "target_error_criterion_frozen": false,
+    "target_high_threshold_frozen": false,
+    "target_low_threshold_frozen": false,
+    "truth_annotation_schema_declared": true
+  },
+  "details": {
+    "minimum_double_annotation_fraction": 0.2,
+    "split_group": [
+      "recording_day",
+      "focal_scene_id",
+      "recording_block"
+    ]
+  },
+  "hard_failures": [
+    "frozen_field_calibration",
+    "heldout_scoring_allowed",
+    "target_high_threshold_frozen",
+    "target_low_threshold_frozen",
+    "target_error_criterion_frozen",
+    "nuisance_error_criterion_frozen",
+    "observability_support_rule_frozen",
+    "observability_observable_thresholds_frozen",
+    "observability_unobservable_thresholds_frozen"
+  ],
+  "heldout_scoring_allowed": false,
+  "interpretation": "This gate licenses only readiness for held-out H6 scoring. It does not establish REC-H6 itself, which additionally requires joined REC exposure/entry rows, TNOA field scores and independent held-out truth.",
+  "live_tnoa_capture_actions_allowed": false,
+  "manifest_schema": "tnoa-field-calibration-manifest-v1",
+  "manifest_status": "unfrozen_predata",
+  "ready_for_h6_heldout_scoring": false,
+  "schema": "rec-h6-readiness-audit-v1",
+  "source": {
+    "pollipi_commit": "88630139953ff28f0396a4a80f54cf4087fb0f25",
+    "pollipi_manifest_path": "calibration/tnoa_field_calibration_unfrozen_v1.json",
+    "pollipi_manifest_blob": "12b12cf3aec2e58de9574b5c2fc5a9d5022d2508",
+    "workflow_run_id": 33830301060,
+    "artifact_id": 9921424764,
+    "artifact_sha256": "876f8c03e4eb244d4f557f9a98e73b251104d7a39082fdffb855cb3bf0ea373a"
+  }
+}

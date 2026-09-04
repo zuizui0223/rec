@@ -2,7 +2,7 @@
 
 **REC studies the shadow side of TNOA: ecological exposures and events that existed before downstream analysis but never became usable records.**
 
-Status: **active Paper-2 research program; external real-data mechanism validation achieved, prospective field/correction stages still open.**
+Status: **active Paper-2 research program; external real-data mechanism validation and retrospective correction achieved, prospective same-system field validation still open.**
 
 The frozen MEE Paper 1 remains in `zuizui0223/tnoa`. This repository owns forward validation/generalization work.
 
@@ -10,10 +10,10 @@ The frozen MEE Paper 1 remains in `zuizui0223/tnoa`. This repository owns forwar
 
 REC is no longer only a design/exploration scaffold.
 
-Two distinct real observation systems now support the central pre-entry mechanism, under different identification designs:
+Two distinct real observation systems support the central pre-entry mechanism, and one of them now also supplies a retrospective recovery test:
 
 1. **BirdVox-full-night — continuous algorithmic exposure experiment.** A gate-independent one-second `Omega` is defined from continuous audio. A frozen annotation-naive gate produced real shadow events, condition-dependent operating meaning and severe distortion of a prespecified temporal flight-call contrast. Unit10 was retained as a pilot; protected units 02/05 independently reproduced the upstream-omission result. The frozen score itself generalized poorly, so the extreme miss-rate magnitude is an adverse result, not a claim about competent bird detectors. Even an oracle-perfect downstream semantic stage could not reconstruct truth-positive windows that never entered.
-2. **Findlay camera traps — external physical-sensor process validation.** Among 881 independently observed fox/badger passes, `a_R=P(no trigger|pass)=0.514188`; bounded final non-capture is about `0.800227–0.802497`. Loss varies strongly with biological/observation conditions, and true-pass species composition shifts at trigger and capture. In a separate otter wet/dry table, wet passes have higher trigger loss than dry passes in all three camera types, with corresponding underrepresentation of wet passes in the triggered record.
+2. **Findlay camera traps — external physical-sensor process validation and retrospective recovery.** Among 881 independently observed fox/badger passes, `a_R=P(no trigger|pass)=0.514188`; bounded final non-capture is about `0.800227–0.802497`. Loss varies strongly with biological/observation conditions, and true-pass species composition shifts at trigger and capture. In the separate otter wet/dry table, wet passes have higher trigger loss than dry passes in all three camera types. A leave-one-camera-type-out IPW correction learned entry probabilities only from the other camera types and improved held-out wet-composition error in `3/3` cameras; mean absolute error fell from `0.115982` to `0.059258` (`48.91%` relative reduction).
 
 Current claim status:
 
@@ -21,14 +21,16 @@ Current claim status:
 - **REC-H2 structured selection:** positive descriptive evidence across temporal, biological and sensor-condition axes;
 - **REC-H3 ecological distortion:** positive for a temporal ecological contrast in BirdVox and composition endpoints in camera traps;
 - **REC-H4 gate semantics sensitivity:** positive in BirdVox;
-- **REC-H5 correction/recoverability:** exposure/reference diagnosis is executable, but a frozen correction/redesign improvement claim is not yet complete;
-- **REC-H6 REC→TNOA decomposition:** upstream omission has been shown to survive an oracle-perfect downstream stage, but a full same-system empirical two-stage decomposition remains open.
+- **REC-H5 correction/recoverability:** **positive retrospective cross-camera partial-recovery evidence** in Findlay; protected prospective H5 remains open;
+- **REC-H6 REC→TNOA decomposition:** same-system PolliPi architecture is now pinned and guarded by an executable readiness gate, but the current field calibration is intentionally unfrozen and held-out scoring remains forbidden; empirical H6 remains open.
 
 Canonical result summaries:
 
 - `results/BIRDVOX_UNIT10_SMOKE_RESULT.md` — pilot/mechanism unit;
 - `results/BIRDVOX_PROTECTED_02_05_RESULT.md` — protected independent BirdVox replication;
-- `results/FINDLAY_CAMERA_TRAP_RESULT.md` — camera-trap external validation.
+- `results/FINDLAY_CAMERA_TRAP_RESULT.md` — camera-trap external validation;
+- `results/FINDLAY_H5_CORRECTION_RESULT.md` — retrospective cross-camera correction;
+- `results/H6_POLLIPI_READINESS_AUDIT.md` — same-system H6 readiness boundary.
 
 ## Core distinction
 
@@ -135,7 +137,7 @@ Main targets:
 2. **REC-H2 — structured selection:** entry/absorption varies across frozen measurement conditions;
 3. **REC-H3 — ecological distortion:** differential entry changes a prespecified ecological estimand or contrast;
 4. **REC-H4 — gate semantics sensitivity:** different frozen gates create measurably different recorded worlds;
-5. **REC-H5 — exposure-ledger recoverability:** a gate-independent denominator plus probability-sampled truth can diagnose/recover entry loss that event-log-only workflows cannot diagnose from their own rows;
+5. **REC-H5 — exposure-ledger recoverability:** a gate-independent denominator plus independent reference information can diagnose and, where transport assumptions are defensible, partially correct entry loss that event-log-only workflows cannot diagnose from their own rows;
 6. **REC-H6 — two-stage decomposition:** where identifiable, separate upstream REC loss from later TNOA semantic coarsening on the same held-out evidence.
 
 Null/adverse outcomes remain publishable and do not trigger post-hoc redesign. The BirdVox frozen score is itself an example: poor protected discrimination is retained as an adverse operating-rule result rather than tuned away after protected outcomes were opened.
@@ -158,7 +160,7 @@ See `PRIOR_ART_BOUNDARY.md`.
 
 The defensible REC target is narrower:
 
-> **an auditable record-entry measurement contract linking an exposure universe, pre-gate evidence, versioned gate/entry rules, probability-sampled shadow truth and downstream ecological consequence before later semantic coarsening.**
+> **an auditable record-entry measurement contract linking an exposure universe, pre-gate evidence, versioned gate/entry rules, independent shadow truth, downstream ecological consequence and correction before later semantic coarsening.**
 
 The real-data results support that mechanism across acoustic and camera-trap systems. They do not make the component false-negative patterns themselves novel.
 
@@ -189,42 +191,51 @@ Validate with:
 python scripts/validate_chapter2_windows.py examples/chapter2_windows.csv
 ```
 
-Missing reference truth is not converted to a negative state. The same rule is now exercised in the Findlay external validation: missing `TRIGGER` or `CAPTURE` values remain process-specific unresolved mass and generate resolved-only estimates plus partial-identification bounds.
+Missing reference truth is not converted to a negative state. The same rule is exercised in the Findlay external validation and H5 correction: missing `TRIGGER` or `CAPTURE` values remain process-specific unresolved mass and generate resolved-only estimates plus partial-identification/sensitivity bounds.
 
-CI runs all schema regression tests on every PR.
+CI runs schema and analysis regression tests on every PR.
 
 ## Current empirical program
 
-### System A — prospective interaction camera
+### System A / PolliPi — prospective same-system interaction camera
 
-Goal: complete the full prospective chain from gate-independent exposure clock/reference channel through physical/algorithmic entry to B/T/N/U and downstream ecology.
+Goal: complete the full prospective chain from gate-independent exposure clock/reference channel through physical/algorithmic entry to field-calibrated TNOA representation, binary coarsening and downstream ecology.
 
-Required:
+PolliPi already provides real-camera Phase-A T/N/O shadow logging, separate operational capture records and a blinded Phase-B independent-truth annotation contract. REC now pins this as the primary H6 same-system candidate in `H6_SAME_SYSTEM_CONTRACT.md`.
 
-- independent master exposure grid;
-- synchronized reference truth;
-- pre-gate evidence retained for all auditable exposures;
-- versioned gate and archive-entry policy;
-- deliberate truth sampling of registered B and non-entered exposures;
-- grouped development/held-out split;
-- one prespecified ecological estimand/contrast;
-- frozen correction/redesign evaluation.
+Current blocker: the PolliPi field-calibration manifest is deliberately `unfrozen_predata`, with null target/nuisance/observability decision criteria and `heldout_scoring_allowed=false`. `scripts/check_h6_readiness.py` therefore correctly blocks H6 held-out scoring.
 
-Phase-0 REC work is tracked in issue #3. This remains the route to prospective field validation and H5/H6 promotion.
+Required next steps:
+
+- collect fixed-interval Phase-A probe logs plus synchronized independent reference truth;
+- finish development/calibration annotation under the grouped split;
+- freeze target, nuisance and observability field criteria without opening held-out groups;
+- version and join REC `Omega/A/R/K` rows to the same probes;
+- freeze one ecological endpoint and target/not-target coarsening;
+- enable held-out scoring in a new frozen field-calibration manifest;
+- score untouched held-out groups once and run the four-stage H6 decomposition.
+
+Phase-0 REC work is tracked in issue #3. A dedicated H6 execution issue should own the field-calibration-to-heldout transition.
 
 ### External physical-sensor validation — Findlay CT-Detection
 
-**Completed external validation.**
+**Completed external H1/H2/H3 validation plus retrospective H5 recovery.**
 
 The public Findlay et al. camera/CCTV data provide true animal passes followed by trigger and registration/capture outcomes. REC maps these onto event-conditioned `R/K` estimands without pretending that the tables provide a complete temporal exposure denominator.
 
-Key result: substantial pre-entry loss is accompanied by strong condition dependence and measurable composition shifts in the recorded world. Wet-pass underrepresentation repeats across all three otter camera types.
+Key validation result: substantial pre-entry loss is accompanied by strong condition dependence and measurable composition shifts in the recorded world. Wet-pass underrepresentation repeats across all three otter camera types.
+
+H5 result: leave-one-camera-type-out self-normalized IPW estimated wet/dry trigger propensities from the other two camera types only. Held-out wet-composition error improved in all three cameras, and mean absolute error fell by `48.91%`. This is retrospective partial-recovery evidence, not a protected confirmatory correction trial.
 
 See:
 
 - `scripts/analyze_findlay_ct_shadow.py`;
 - `results/findlay_camera_trap_real_data_v1.json`;
-- `results/FINDLAY_CAMERA_TRAP_RESULT.md`.
+- `results/FINDLAY_CAMERA_TRAP_RESULT.md`;
+- `H5_CORRECTION_PLAN.md`;
+- `scripts/analyze_findlay_h5_correction.py`;
+- `results/findlay_h5_correction_v1.json`;
+- `results/FINDLAY_H5_CORRECTION_RESULT.md`.
 
 ### External algorithmic REC replication — BirdVox-full-night
 
@@ -244,7 +255,7 @@ See:
 
 ### Later broad acoustic candidate — WABAD
 
-Potential multi-site/biome generalization after its released-recording selection provenance is audited. A stronger provenance-safe recording rule on a new protected system is the next test if REC needs a representative-performance rather than adverse-gate demonstration.
+Potential multi-site/biome generalization after its released-recording selection provenance is audited. A stronger provenance-safe recording rule on a new protected system remains useful if REC needs representative-performance evidence beyond the deliberately adverse BirdVox gate.
 
 ### Snapshot Serengeti
 
@@ -254,21 +265,19 @@ See `SYSTEM_B_CANDIDATES.md`.
 
 ## Promotion ladder
 
-An above-MEE paper should not be promoted merely because REC has a compelling diagram.
-
 The evidence ladder is:
 
 1. gate-independent exposure denominator;
 2. independently measured shadow events;
 3. condition-dependent entry structure;
 4. downstream ecological consequence;
-5. frozen correction/redesign evaluation;
-6. upstream REC versus downstream TNOA decomposition where identifiable;
+5. correction/redesign evaluation;
+6. upstream REC versus downstream TNOA decomposition on the same held-out evidence;
 7. independent sensor/system replication.
 
-**Current state:** steps 1–4 are empirically supported in the external program, and step 7 has been reached across acoustic and camera-trap modalities. Step 5 remains open. Step 6 has a strong oracle-downstream impossibility bridge in BirdVox but not yet a full same-system empirical REC+TNOA decomposition.
+**Current state:** steps 1–4 are empirically supported in the external program, and step 7 has been reached across acoustic and camera-trap modalities. Step 5 now has positive retrospective cross-camera partial-recovery evidence, but prospective confirmatory recovery remains open. Step 6 has an oracle-downstream impossibility bridge in BirdVox and an implementation-ready PolliPi same-system contract, but no licensed held-out field decomposition yet.
 
-This means REC has crossed the line from a measurement-validation idea to a real-data mechanism program, but the strongest paper claim should still wait for correction/redesign and/or prospective same-system integration rather than overpromoting the extreme BirdVox miss-rate magnitude.
+The next major promotion is therefore not another demonstration that events can be missed. It is the prospective PolliPi/System-A transition from shadow logging and independent truth to a frozen field calibration, untouched held-out scoring and four-stage REC→TNOA decomposition.
 
 ## Repository map
 
@@ -284,8 +293,10 @@ This means REC has crossed the line from a measurement-validation idea to a real
 - `PRIOR_ART_BOUNDARY.md` — nearest-neighbour audit;
 - `SYSTEM_B_CANDIDATES.md` — external replication suitability;
 - `BIRDVOX_REPLICATION.md` — frozen acoustic replication contract and boundaries;
-- `results/` — committed real-data evidence summaries and machine-readable outputs;
-- `scripts/` and `tests/` — executable validation, real-data analyses and identifiability witnesses.
+- `H5_CORRECTION_PLAN.md` — retrospective cross-camera correction freeze;
+- `H6_SAME_SYSTEM_CONTRACT.md` — PolliPi same-system four-stage H6 contract;
+- `results/` — committed real-data evidence, correction and readiness summaries;
+- `scripts/` and `tests/` — executable validation, real-data analyses, recovery tests and readiness gates.
 
 ## Hard boundary with TNOA Paper 1
 
