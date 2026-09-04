@@ -6,12 +6,14 @@ on:
     paths:
       - '.github/workflows/findlay-h5-double-holdout.yml'
       - 'scripts/analyze_findlay_h5_double_holdout.py'
+      - 'scripts/analyze_findlay_h5_position_transport.py'
       - 'tests/test_findlay_h5_double_holdout.py'
       - 'PAPER_LOGIC_H1_H5.md'
   pull_request:
     paths:
       - '.github/workflows/findlay-h5-double-holdout.yml'
       - 'scripts/analyze_findlay_h5_double_holdout.py'
+      - 'scripts/analyze_findlay_h5_position_transport.py'
       - 'tests/test_findlay_h5_double_holdout.py'
       - 'PAPER_LOGIC_H1_H5.md'
   workflow_dispatch:
@@ -41,17 +43,26 @@ jobs:
         run: |
           test "$(git hash-object /tmp/findlay-h5-double/TRIGGER_OTTER_WET.DRY.csv)" = '1f2fef008470ad1263d76beeb5be2b7006ff85aa'
 
-      - name: Run double-holdout and sham robustness analysis
+      - name: Run frozen double-holdout and sham robustness analysis
         run: |
           python scripts/analyze_findlay_h5_double_holdout.py \
             /tmp/findlay-h5-double/TRIGGER_OTTER_WET.DRY.csv \
             --output /tmp/findlay-h5-double/findlay_h5_double_holdout.json
           cat /tmp/findlay-h5-double/findlay_h5_double_holdout.json
 
-      - name: Upload inspectable robustness result
+      - name: Run exploratory within-camera position transport diagnostic
+        run: |
+          python scripts/analyze_findlay_h5_position_transport.py \
+            /tmp/findlay-h5-double/TRIGGER_OTTER_WET.DRY.csv \
+            --output /tmp/findlay-h5-double/findlay_h5_position_transport.json
+          cat /tmp/findlay-h5-double/findlay_h5_position_transport.json
+
+      - name: Upload inspectable robustness results
         uses: actions/upload-artifact@v4
         with:
           name: findlay-rec-h5-double-holdout
           if-no-files-found: error
           retention-days: 14
-          path: /tmp/findlay-h5-double/findlay_h5_double_holdout.json
+          path: |
+            /tmp/findlay-h5-double/findlay_h5_double_holdout.json
+            /tmp/findlay-h5-double/findlay_h5_position_transport.json
