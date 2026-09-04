@@ -1,0 +1,41 @@
+{
+  "schema": "rec-findlay-species-position-recovery-summary-v1",
+  "source_workflow_run": 33834062924,
+  "source_artifact_digest": "sha256:61383744ec7babac2327a3c391717ec95b81e56d0fcb31172265a37d2c610692",
+  "source_file": "REGISTRATION_FOX_BADGER.csv",
+  "source_git_blob": "d2dc9852ca1f2a1380b991acba425d16e12327d5",
+  "estimand": "badger proportion among CCTV-confirmed fox/badger passes within held-out CT position",
+  "trigger": {
+    "mean_absolute_error_raw": 0.123093,
+    "mean_absolute_error_correct": 0.090510,
+    "mean_absolute_error_sham": 0.150218,
+    "relative_error_reduction": 0.2647,
+    "positions_improved": 3,
+    "position_count": 4,
+    "positions_correct_beats_sham": 3,
+    "position_errors": {
+      "AP": {"raw": 0.141960, "correct": 0.084761, "sham": 0.199930},
+      "FF": {"raw": 0.086713, "correct": 0.010680, "sham": 0.165289},
+      "SF": {"raw": 0.121361, "correct": 0.191415, "sham": 0.029265},
+      "SNIG": {"raw": 0.142339, "correct": 0.075182, "sham": 0.206390}
+    }
+  },
+  "capture": {
+    "mean_absolute_error_raw": 0.210807,
+    "mean_absolute_error_correct": 0.167972,
+    "mean_absolute_error_sham": 0.260198,
+    "relative_error_reduction": 0.2032,
+    "positions_improved": 3,
+    "position_count": 4,
+    "positions_correct_beats_sham": 3,
+    "mean_worst_case_corrected_error_unresolved_bounds": 0.169423,
+    "position_errors": {
+      "AP": {"raw": 0.337553, "correct": 0.248130, "sham": 0.416399},
+      "FF": {"raw": 0.153233, "correct": 0.047025, "sham": 0.258202},
+      "SF": {"raw": 0.121928, "correct": 0.233591, "sham": 0.059042},
+      "SNIG": {"raw": 0.230514, "correct": 0.143143, "sham": 0.307150}
+    }
+  },
+  "interpretation": "Species-specific entry correction improves mean held-out-position composition error at trigger and final capture, but SF is adverse at both stages and is better served by the swapped sham direction.",
+  "governance_boundary": "Retrospective position transport; CT positions are observation contexts, not independent animals or population replicates."
+}
