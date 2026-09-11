@@ -1,6 +1,6 @@
-# Third-party data rights audit — REC H1–H5
+# Third-party data rights audit — REC H1–H5 / M4
 
-Status: **BirdVox clear; Findlay article is CC BY 4.0 and explicitly links the GitHub datasets as online resources, but repository-level licence clarification remains prudent before journal submission.**
+Status: **BirdVox clear; Findlay article is CC BY 4.0 and explicitly identifies the public GitHub repository as the online resource for its R file and datasets. Repository-level licensing remains ambiguous, so raw-file redistribution stays blocked pending clarification.**
 
 This is a submission-governance note, not legal advice.
 
@@ -23,54 +23,52 @@ Status: **clear for reuse with attribution.**
 
 Source:
 
-- Findlay, Briers & White (2020), *Mammal Research* 65:167–180;
+- Findlay, Briers & White (2020), *Mammal Research* 65:167–180, DOI `10.1007/s13364-020-00478-y`;
 - public GitHub repository `melaniefindlay/CT-Detection`;
 - exact REC analysis commit `abc72f535bb59ebed202fb7acca852fc1647e97a`;
 - source files are downloaded and hash-verified by the REC workflows.
 
-### Evidence supporting reuse
+### Evidence supporting methodological reanalysis
 
-The Findlay article is published open access under **CC BY 4.0**. The publisher page explicitly states under Electronic Supplementary Material / Online resources that:
+The publisher page for the Findlay article states that the article is open access under **CC BY 4.0**. It also explicitly identifies the GitHub repository as the paper's online resource and says that the R file and datasets are available there.
 
-> the R file and datasets are available at the `melaniefindlay/CT-Detection` GitHub repository.
+This is stronger evidence than public-GitHub visibility alone: the source article itself designates `melaniefindlay/CT-Detection` as the associated research-data/code location.
 
-This strongly supports the interpretation that the repository is the authors' intended public research-data resource associated with the open-access article.
+The Edinburgh Napier institutional repository independently records the same article as CC BY 4.0 and links the publisher licence.
 
 ### Remaining ambiguity
 
-GitHub repository metadata itself currently reports:
+The GitHub repository itself does not currently display a root licence / machine-readable GitHub licence. Therefore this audit does **not** make the legal inference that every externally linked GitHub file automatically inherits the article licence.
 
-`license: null`.
+That distinction matters most for **redistribution of the original repository files**. M4 does not need to redistribute those CSV files in order to report the reanalysis: the original public repository can remain the source location, while our code downloads the pinned files and verifies their identities.
 
-Thus the repository does not independently display a machine-readable or root-file data/software licence. The publisher's CC BY statement clearly covers the article and material included under that licence, but the current audit does not attempt to give a legal ruling on whether every externally linked GitHub file inherits the article licence automatically.
+### M4 submission implication
 
-### Submission implication
+For the current `V3 + REC -> Ecological Informatics` route:
 
-Methods in Ecology and Evolution asks authors to confirm that third-party datasets are either publicly available for unrestricted reuse or that permission for reuse has been obtained from the data owners.
+- the Findlay analysis is **not treated as a missing scientific-validation blocker**;
+- the source paper and associated online-data location are public and citable;
+- derived numerical summaries, figures, code and provenance can be prepared while the final rights wording is clarified;
+- **do not redistribute the original Findlay CSV files inside our public or anonymous reviewer archive unless the data owner confirms the terms or an explicit repository/data licence is established**;
+- use download/reproduction instructions that obtain the source files from the authors' repository and verify the frozen commit/blob identities.
 
-The evidence is now stronger than public-GitHub availability alone because the CC BY article explicitly designates the repository as its online data resource. Nevertheless, the lowest-risk submission route is still to obtain a short written confirmation from the corresponding/data author that reuse of the linked CSV files in a methodological reanalysis and publication of derived summaries/figures is permitted.
+A short written confirmation from the corresponding/data author remains the lowest-risk way to remove the residual repository-level ambiguity. The existing request draft is `FINDLAY_REUSE_PERMISSION_REQUEST_DRAFT.md`.
 
-Recommended action before MEE full submission:
+Recommended confirmation request:
 
-1. contact the Findlay data owner/corresponding author;
-2. identify the paper, public repository and exact two CSV files;
-3. request confirmation that reanalysis and publication of derived numerical summaries/figures are permitted;
-4. ask whether the authors consider the linked datasets covered by the article's CC BY 4.0 licence or prefer another citation/licence statement;
-5. archive the confirmation with submission records.
+1. permission to analyse `REGISTRATION_FOX_BADGER.csv` and `TRIGGER_OTTER_WET.DRY.csv` for the methodological reanalysis;
+2. permission to publish derived numerical summaries and figures;
+3. permission to provide reproducible code that downloads the original data from the authors' public repository without republishing the source CSV files;
+4. preferred data citation/licence wording.
 
-Status: **strong public-reuse evidence; written clarification still recommended for submission certainty.**
+Status: **reanalysis/publication preparation may proceed; original-file redistribution remains fail-closed pending repository-level rights clarification.**
 
 ## Important distinction
 
-The REC repository does not redistribute the original Findlay CSV files. CI downloads them from the authors' original public repository and verifies Git blob identities. Nevertheless, third-party-data declarations concern rights to use the data in research, not only redistribution of raw files.
+The REC/M4 analysis does not claim ownership of the original camera-trap datasets or the original detection-process findings. Findlay et al. remain the source owners of the camera-trap/CCTV design and original data. M4 owns only the declared reanalysis questions and derived results.
 
 ## REC repository code
 
-Separately, the REC repository currently has no root open-source `LICENSE` file. MEE's code policy requires code submitted with the manuscript to have an open-source licence.
-
-This is a separate decision from third-party dataset rights:
-
-- Findlay/BirdVox terms govern source data;
-- the REC repository licence governs our analysis/code reuse.
+Separately, repository-level software licensing for our own analysis code should be resolved before a permanent public version-of-record software archive is fixed. This is independent of Findlay/BirdVox data rights.
 
 Do not add a software licence without an explicit author choice.
